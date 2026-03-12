@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>TokenRoute</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  width: 300px;
+  background: #0e0e12;
+  color: #d4d4d8;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 12px;
+  padding: 14px;
+}
+
+/* ── HEADER ── */
+.head { display: flex; align-items: center; gap: 9px; margin-bottom: 14px; }
+.logo {
+  width: 30px; height: 30px; border-radius: 7px;
+  background: linear-gradient(135deg, #ecbb61, #d4943a);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 800; color: #08080c; flex-shrink: 0;
+}
+.title { font-size: 14px; font-weight: 700; color: #ecbb61; }
+.version { font-size: 9px; color: rgba(255,255,255,0.18); margin-top: 1px; }
+.status-pill {
+  margin-left: auto; display: flex; align-items: center; gap: 4px;
+  padding: 3px 8px; border-radius: 20px;
+  background: rgba(16,185,129,0.08); font-size: 9px; color: #6ee7b7;
+  border: 1px solid rgba(16,185,129,0.15);
+}
+.status-dot { width: 5px; height: 5px; border-radius: 50%; background: #10b981; }
+
+/* ── SESSION CARD ── */
+.card {
+  padding: 11px 13px; border-radius: 10px;
+  background: rgba(255,255,255,0.025);
+  border: 1px solid rgba(255,255,255,0.05);
+  margin-bottom: 10px;
+}
+.card-title {
+  font-size: 8px; color: rgba(255,255,255,0.2);
+  text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px;
+}
+
+/* ── STAT GRID ── */
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.stat {
+  padding: 9px 11px; border-radius: 8px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.04);
+}
+.stat-lbl { font-size: 8px; color: rgba(255,255,255,0.2); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 3px; }
+.stat-val { font-size: 20px; font-weight: 600; line-height: 1; }
+
+/* ── BREAKDOWN ── */
+.breakdown { display: flex; flex-direction: column; gap: 3px; margin-bottom: 10px; }
+.brow { display: flex; align-items: center; gap: 7px; }
+.brow-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.brow-label { font-size: 10px; color: rgba(255,255,255,0.4); flex: 1; }
+.brow-val { font-size: 10px; font-weight: 500; }
+.brow-cost { font-size: 9px; color: rgba(255,255,255,0.2); margin-left: 2px; }
+
+/* ── PLATFORMS ── */
+.plat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 10px; }
+.plat {
+  display: flex; align-items: center; gap: 5px; padding: 5px 8px;
+  border-radius: 6px; background: rgba(255,255,255,0.015);
+  border: 1px solid rgba(255,255,255,0.03);
+}
+.plat-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+.plat-name { font-size: 9px; color: rgba(255,255,255,0.4); flex: 1; }
+.plat-ok { font-size: 7px; color: rgba(16,185,129,0.7); }
+
+/* ── BUTTONS ── */
+.btn-row { display: flex; gap: 6px; margin-bottom: 10px; }
+.btn {
+  flex: 1; padding: 7px; border-radius: 7px;
+  border: 1px solid rgba(255,255,255,0.05);
+  background: rgba(255,255,255,0.03);
+  color: rgba(255,255,255,0.4); font-size: 9px;
+  cursor: pointer; text-align: center; transition: all 0.15s;
+}
+.btn:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.7); }
+.btn-danger:hover { background: rgba(239,68,68,0.1); color: #fca5a5; border-color: rgba(239,68,68,0.2); }
+
+/* ── FOOTER ── */
+.foot { border-top: 1px solid rgba(255,255,255,0.04); padding-top: 8px; display: flex; gap: 6px; }
+.foot-link { font-size: 9px; color: rgba(255,255,255,0.2); text-decoration: none; flex: 1; text-align: center; padding: 4px; border-radius: 5px; transition: color 0.15s; }
+.foot-link:hover { color: #ecbb61; }
+</style>
+</head>
+<body>
+  <div class="head">
+    <div class="logo">T</div>
+    <div>
+      <div class="title">TokenRoute</div>
+      <div class="version">v0.2.0 — Live Token &amp; Cost Monitor</div>
+    </div>
+    <div class="status-pill">
+      <span class="status-dot"></span>
+      Active
+    </div>
+  </div>
+
+  <!-- Session totals -->
+  <div class="card">
+    <div class="card-title">This Session</div>
+    <div class="stat-grid">
+      <div class="stat">
+        <div class="stat-lbl">Input Tokens</div>
+        <div class="stat-val" id="s-in-tok" style="color:#ecbb61">0</div>
+      </div>
+      <div class="stat">
+        <div class="stat-lbl">Output Tokens</div>
+        <div class="stat-val" id="s-out-tok" style="color:#a78bfa">0</div>
+      </div>
+      <div class="stat">
+        <div class="stat-lbl">Input Cost</div>
+        <div class="stat-val" id="s-in-cost" style="color:#d4d4d8;font-size:14px">$0.00</div>
+      </div>
+      <div class="stat">
+        <div class="stat-lbl">Output Cost</div>
+        <div class="stat-val" id="s-out-cost" style="color:#d4d4d8;font-size:14px">$0.00</div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 11px;border-radius:7px;background:rgba(236,187,97,0.04);border:1px solid rgba(236,187,97,0.08)">
+      <span style="font-size:9px;color:rgba(255,255,255,0.3)">TOTAL SPENT</span>
+      <span id="s-total" style="font-size:16px;font-weight:700;color:#ecbb61">$0.0000</span>
+    </div>
+  </div>
+
+  <!-- Per-model breakdown -->
+  <div class="card" style="margin-bottom:10px">
+    <div class="card-title">Cost by Model (Input Rates)</div>
+    <div class="breakdown" id="pricing-breakdown">
+      <div class="brow"><span class="brow-dot" style="background:#10b981"></span><span class="brow-label">GPT-4o</span><span class="brow-val">$2.50</span><span class="brow-cost">/ 1M input</span></div>
+      <div class="brow"><span class="brow-dot" style="background:#0ea5e9"></span><span class="brow-label">Codex / 4o-mini</span><span class="brow-val">$0.15</span><span class="brow-cost">/ 1M input</span></div>
+      <div class="brow"><span class="brow-dot" style="background:#d97706"></span><span class="brow-label">Claude 3.5 Sonnet</span><span class="brow-val">$3.00</span><span class="brow-cost">/ 1M input</span></div>
+      <div class="brow"><span class="brow-dot" style="background:#8b5cf6"></span><span class="brow-label">Gemini 1.5 Pro</span><span class="brow-val">$1.25</span><span class="brow-cost">/ 1M input</span></div>
+      <div class="brow"><span class="brow-dot" style="background:#fbbf24"></span><span class="brow-label">LLaMA 3 70B (HF)</span><span class="brow-val">$0.59</span><span class="brow-cost">/ 1M input</span></div>
+    </div>
+  </div>
+
+  <!-- Supported platforms -->
+  <div class="card" style="margin-bottom:10px">
+    <div class="card-title">Supported Platforms</div>
+    <div class="plat-grid">
+      <div class="plat"><span class="plat-dot" style="background:#10b981"></span><span class="plat-name">ChatGPT</span><span class="plat-ok">● Ready</span></div>
+      <div class="plat"><span class="plat-dot" style="background:#d97706"></span><span class="plat-name">Claude</span><span class="plat-ok">● Ready</span></div>
+      <div class="plat"><span class="plat-dot" style="background:#3b82f6"></span><span class="plat-name">Perplexity</span><span class="plat-ok">● Ready</span></div>
+      <div class="plat"><span class="plat-dot" style="background:#8b5cf6"></span><span class="plat-name">Gemini</span><span class="plat-ok">● Ready</span></div>
+      <div class="plat"><span class="plat-dot" style="background:#fbbf24"></span><span class="plat-name">HuggingFace</span><span class="plat-ok">● Ready</span></div>
+      <div class="plat"><span class="plat-dot" style="background:#0ea5e9"></span><span class="plat-name">OAI Playground</span><span class="plat-ok">● Ready</span></div>
+      <div class="plat"><span class="plat-dot" style="background:#8b5cf6"></span><span class="plat-name">AI Studio</span><span class="plat-ok">● Ready</span></div>
+      <div class="plat"><span class="plat-dot" style="background:#d97706"></span><span class="plat-name">Anthropic Console</span><span class="plat-ok">● Ready</span></div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-danger" id="btn-reset">Reset Session</button>
+    <button class="btn" id="btn-export">Export CSV</button>
+  </div>
+
+  <div class="foot">
+    <a class="foot-link" href="https://tokenroute.dev" target="_blank">Dashboard</a>
+    <a class="foot-link" href="https://github.com/tokenroute/tokenroute" target="_blank">GitHub</a>
+    <a class="foot-link" href="https://tokenroute.dev/docs" target="_blank">Docs</a>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

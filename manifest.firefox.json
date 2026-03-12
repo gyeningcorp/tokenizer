@@ -1,0 +1,70 @@
+{
+  "manifest_version": 2,
+  "name": "TokenRoute — Live Token & Cost Monitor",
+  "version": "0.2.0",
+  "description": "Real-time token counting, input/output cost breakdown, and cross-model comparison for ChatGPT, Claude, Gemini, Codex, HuggingFace, and more.",
+
+  "permissions": [
+    "activeTab",
+    "storage",
+    "https://chat.openai.com/*",
+    "https://chatgpt.com/*",
+    "https://claude.ai/*",
+    "https://www.perplexity.ai/*",
+    "https://perplexity.ai/*",
+    "https://gemini.google.com/*",
+    "https://huggingface.co/*",
+    "https://platform.openai.com/*",
+    "https://aistudio.google.com/*",
+    "https://console.anthropic.com/*"
+  ],
+
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": false
+  },
+
+  "content_scripts": [
+    {
+      "matches": [
+        "https://chat.openai.com/*",
+        "https://chatgpt.com/*",
+        "https://claude.ai/*",
+        "https://www.perplexity.ai/*",
+        "https://perplexity.ai/*",
+        "https://gemini.google.com/*",
+        "https://huggingface.co/chat/*",
+        "https://platform.openai.com/playground*",
+        "https://aistudio.google.com/*",
+        "https://console.anthropic.com/*"
+      ],
+      "js": ["content.js"],
+      "css": ["overlay.css"],
+      "run_at": "document_idle"
+    }
+  ],
+
+  "web_accessible_resources": ["injected.js"],
+
+  "browser_action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "tokenroute@thedigitalduo.net",
+      "strict_min_version": "109.0"
+    }
+  }
+}
