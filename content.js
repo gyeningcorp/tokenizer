@@ -664,33 +664,54 @@
     return null;
   }
 
-  let activeInput=null, debTimer=null;
+  let activeInput=null, debTimer=null, bodyObs=null;
   function attach(el){
     if(activeInput===el) return;
     activeInput=el;
-    const h=()=>{ clearTimeout(debTimer); debTimer=setTimeout(()=>updateFromInput(getText(el)),80); };
-    el.addEventListener("input",h); el.addEventListener("keyup",h);
-    if(el.getAttribute("contenteditable")) new MutationObserver(h).observe(el,{childList:true,subtree:true,characterData:true});
+    // Disconnect body observer once input found — no more full-page watching
+    if(bodyObs){ bodyObs.disconnect(); bodyObs=null; }
+    const h=()=>{ clearTimeout(debTimer); debTimer=setTimeout(()=>updateFromInput(getText(el)),150); };
+    el.addEventListener("input",h);
+    // Only use MutationObserver on contenteditable — watch the element itself, not subtree
+    if(el.getAttribute("contenteditable")){
+      new MutationObserver(h).observe(el,{childList:true,characterData:true,subtree:false});
+    }
     pulse("Input detected — ready", platform.color);
   }
 
-  function poll(){ const el=findInput(); if(el) attach(el); setTimeout(poll,1500); }
+  // Poll stops once input is found
+  let pollTimer=null;
+  function poll(){
+    const el=findInput();
+    if(el){ attach(el); return; } // done — no more polling
+    pollTimer=setTimeout(poll,1500);
+  }
 
-  new MutationObserver(()=>{ const el=findInput(); if(el&&el!==activeInput) attach(el); })
-    .observe(document.body,{childList:true,subtree:true});
+  // Body observer only runs until input is found (then detaches itself)
+  bodyObs = new MutationObserver(()=>{
+    const el=findInput();
+    if(el&&el!==activeInput) attach(el); // attach() will disconnect bodyObs
+  });
+  bodyObs.observe(document.body,{childList:true,subtree:true});
 
-  // SPA route change handler
+  // SPA route change — lightweight interval, reattaches only on actual nav
   let lastPath=window.location.pathname;
   setInterval(()=>{
-    if(window.location.pathname!==lastPath){
-      lastPath=window.location.pathname; activeInput=null;
-      if(typeof platform.subLabel==="function"){
-        const badge=overlayEl?.querySelector(".tr-platform-badge");
-        if(badge) badge.textContent=platform.subLabel();
-      }
-      pulse("Detected — start typing", platform.color);
+    if(window.location.pathname===lastPath) return;
+    lastPath=window.location.pathname;
+    activeInput=null;
+    // Re-enable body observer for new route
+    if(!bodyObs){
+      bodyObs=new MutationObserver(()=>{ const el=findInput(); if(el&&el!==activeInput) attach(el); });
+      bodyObs.observe(document.body,{childList:true,subtree:true});
     }
-  },1000);
+    if(typeof platform.subLabel==="function"){
+      const badge=overlayEl?.querySelector(".tr-platform-badge");
+      if(badge) badge.textContent=platform.subLabel();
+    }
+    pulse("Detected — start typing", platform.color);
+    poll();
+  },2000);
 
   // ═══════════════════════════════════════════════════
   // BOOT
