@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Tokenizer — Live Token & Cost Monitor",
-  "version": "0.2.0",
-  "description": "Real-time token counting, input/output cost breakdown, and cross-model comparison for ChatGPT, Claude, Gemini, Codex, HuggingFace, and more.",
+  "version": "0.3.0",
+  "description": "Auto-detects ChatGPT, Claude, Claude Code, Gemini, Codex, HuggingFace and more. Shows live token counts, input/output cost, and cross-model comparison the moment you open any supported LLM.",
 
   "permissions": [
     "activeTab",
@@ -38,6 +38,7 @@
         "https://gemini.google.com/*",
         "https://huggingface.co/chat/*",
         "https://platform.openai.com/playground*",
+        "https://platform.openai.com/codex*",
         "https://aistudio.google.com/*",
         "https://console.anthropic.com/*"
       ],

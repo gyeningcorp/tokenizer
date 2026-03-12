@@ -1,10 +1,10 @@
 /**
- * Tokenizer — content.js v0.2.0
- * Injected into all supported LLM pages.
- * - Injects injected.js into page context for fetch/XHR interception
- * - Monitors textarea/contenteditable for live input token counts
- * - Shows floating overlay with input tokens, output tokens, cost breakdown
- * - Compares tokenization across all major LLMs
+ * Tokenizer — content.js v0.3.0
+ * - Auto-detects platform on page load and shows overlay immediately
+ * - Supports ChatGPT, Claude (all routes), Claude Code, Gemini,
+ *   HuggingFace, OpenAI Playground/Codex, AI Studio, Anthropic Console
+ * - Live input token counting + output interception via injected.js
+ * - Cross-model tokenization + cost breakdown
  */
 
 (function () {
@@ -18,24 +18,47 @@
     chatgpt: {
       match: /chat\.openai\.com|chatgpt\.com/,
       label: "ChatGPT",
+      subLabel: () => {
+        // Try to detect model from the page
+        const m = document.querySelector('[data-testid*="model"]') ||
+                  document.querySelector('.model-switcher') ||
+                  document.querySelector('[aria-label*="GPT"]');
+        return m ? m.textContent.trim().slice(0, 20) : "GPT-4o";
+      },
       model: "gpt-4o",
       tok: "o200k_base",
       color: "#10b981",
       exact: true,
-      selectors: ['#prompt-textarea', 'textarea[data-id]', 'textarea'],
+      selectors: ['#prompt-textarea', 'textarea[data-id]', 'div[contenteditable="true"][id="prompt-textarea"]', 'textarea'],
     },
     claude: {
       match: /claude\.ai/,
       label: "Claude",
+      subLabel: () => {
+        const path = window.location.pathname;
+        if (path.includes("/code")) return "Claude Code";
+        if (path.includes("/new")) return "New Chat";
+        if (path.includes("/chat")) return "Chat";
+        if (path.includes("/project")) return "Project";
+        return "claude.ai";
+      },
       model: "claude-3-5-sonnet",
       tok: "claude",
       color: "#d97706",
       exact: false,
-      selectors: ['div[contenteditable="true"].ProseMirror', 'div[contenteditable="true"]', 'textarea'],
+      selectors: [
+        'div[contenteditable="true"].ProseMirror',
+        '[data-placeholder*="message"]',
+        '[data-placeholder*="Reply"]',
+        '[data-placeholder*="How can"]',
+        'div[contenteditable="true"]',
+        'textarea',
+      ],
     },
     perplexity: {
       match: /perplexity\.ai/,
       label: "Perplexity",
+      subLabel: () => "Perplexity AI",
       model: "llama-3-70b",
       tok: "llama3",
       color: "#3b82f6",
@@ -45,6 +68,10 @@
     gemini: {
       match: /gemini\.google\.com/,
       label: "Gemini",
+      subLabel: () => {
+        const m = document.querySelector('.model-selector-button, [data-model]');
+        return m ? m.textContent.trim().slice(0, 20) : "Gemini";
+      },
       model: "gemini-1.5-pro",
       tok: "gemini",
       color: "#8b5cf6",
@@ -54,6 +81,10 @@
     huggingface: {
       match: /huggingface\.co/,
       label: "HuggingFace",
+      subLabel: () => {
+        const m = document.querySelector('.model-name, h1');
+        return m ? m.textContent.trim().slice(0, 25) : "HF Chat";
+      },
       model: "llama-3-8b",
       tok: "llama3",
       color: "#fbbf24",
@@ -63,6 +94,7 @@
     openai_playground: {
       match: /platform\.openai\.com/,
       label: "OpenAI Playground",
+      subLabel: () => "Codex / Playground",
       model: "gpt-4o",
       tok: "o200k_base",
       color: "#10b981",
@@ -72,6 +104,7 @@
     aistudio: {
       match: /aistudio\.google\.com/,
       label: "AI Studio",
+      subLabel: () => "Google AI Studio",
       model: "gemini-2.0-flash",
       tok: "gemini",
       color: "#8b5cf6",
@@ -81,6 +114,7 @@
     anthropic_console: {
       match: /console\.anthropic\.com/,
       label: "Anthropic Console",
+      subLabel: () => "Anthropic Console",
       model: "claude-3-5-sonnet",
       tok: "claude",
       color: "#d97706",
@@ -102,31 +136,20 @@
   // INJECT PAGE-CONTEXT SCRIPT (fetch/XHR interceptor)
   // ═══════════════════════════════════════════════════
 
-  function injectScript() {
+  (function injectScript() {
     const s = document.createElement("script");
     s.src = chrome.runtime.getURL("injected.js");
     s.onload = () => s.remove();
     (document.head || document.documentElement).appendChild(s);
-  }
-  injectScript();
+  })();
 
-  // Listen for API token reports from injected.js
   window.addEventListener("message", (e) => {
     if (e.source !== window) return;
-    if (!e.data || e.data.__source !== "Tokenizer-interceptor") return;
+    if (!e.data || e.data.__source !== "tokenizer-interceptor") return;
     if (e.data.type === "api_tokens") {
       const { inputTokens, outputTokens } = e.data;
-      // Forward to background
-      chrome.runtime.sendMessage({
-        type: "api_tokens",
-        inputTokens,
-        outputTokens,
-        model: platform.model,
-      }).catch(() => {});
-      // Update overlay with API-confirmed counts
-      if (inputTokens > 0 || outputTokens > 0) {
-        updateFromAPI(inputTokens, outputTokens);
-      }
+      chrome.runtime.sendMessage({ type: "api_tokens", inputTokens, outputTokens, model: platform.model }).catch(() => {});
+      if (inputTokens > 0 || outputTokens > 0) updateFromAPI(inputTokens, outputTokens);
     }
   });
 
@@ -156,16 +179,7 @@
     return Math.max(t.trim() ? 1 : 0, n);
   }
 
-  // Scale factors relative to cl100k_base
-  const SCALE = {
-    cl100k_base: 1.00,   // GPT-4, GPT-3.5
-    o200k_base:  0.87,   // GPT-4o (more efficient)
-    claude:      1.05,   // Claude — slightly more tokens
-    gemini:      0.90,   // Gemini
-    llama3:      0.97,   // LLaMA 3
-    codex:       0.87,   // Same as o200k
-  };
-
+  const SCALE = { cl100k_base: 1.00, o200k_base: 0.87, claude: 1.05, gemini: 0.90, llama3: 0.97, codex: 0.87 };
   const PRICING_LOCAL = {
     cl100k_base: { input: 10.00,  output: 30.00,  label: "GPT-4" },
     o200k_base:  { input: 2.50,   output: 10.00,  label: "GPT-4o" },
@@ -174,29 +188,24 @@
     llama3:      { input: 0.59,   output: 0.79,   label: "LLaMA 3 70B" },
     codex:       { input: 0.15,   output: 0.60,   label: "Codex/4o-mini" },
   };
-
   const GRID_INFO = [
-    { key: "o200k_base", label: "GPT-4o",       color: "#10b981" },
-    { key: "cl100k_base",label: "GPT-4",         color: "#6366f1" },
-    { key: "codex",      label: "Codex",         color: "#0ea5e9" },
-    { key: "claude",     label: "Claude",        color: "#d97706" },
-    { key: "gemini",     label: "Gemini",        color: "#8b5cf6" },
-    { key: "llama3",     label: "LLaMA/HF",      color: "#fbbf24" },
+    { key: "o200k_base", label: "GPT-4o",  color: "#10b981" },
+    { key: "cl100k_base",label: "GPT-4",   color: "#6366f1" },
+    { key: "codex",      label: "Codex",   color: "#0ea5e9" },
+    { key: "claude",     label: "Claude",  color: "#d97706" },
+    { key: "gemini",     label: "Gemini",  color: "#8b5cf6" },
+    { key: "llama3",     label: "LLaMA",   color: "#fbbf24" },
   ];
 
   function countAll(t) {
     const base = estCl100k(t);
     const r = {};
-    for (const [k, s] of Object.entries(SCALE)) {
-      r[k] = Math.max(t.trim() ? 1 : 0, Math.round(base * s));
-    }
+    for (const [k, s] of Object.entries(SCALE)) r[k] = Math.max(t.trim() ? 1 : 0, Math.round(base * s));
     return r;
   }
-
   function calcCost(tokens, key) {
     const p = PRICING_LOCAL[key];
-    if (!p) return 0;
-    return (tokens / 1_000_000) * p.input;
+    return p ? (tokens / 1_000_000) * p.input : 0;
   }
 
   // ═══════════════════════════════════════════════════
@@ -205,7 +214,9 @@
 
   function buildOverlay() {
     const root = document.createElement("div");
-    root.id = "Tokenizer-root";
+    root.id = "tokenizer-root";
+
+    const subLabel = typeof platform.subLabel === "function" ? platform.subLabel() : platform.label;
 
     const gridHtml = GRID_INFO.map(gi => {
       const isActive = gi.key === platform.tok;
@@ -213,7 +224,7 @@
       <div class="tr-g ${isActive ? "tr-g-active" : ""}">
         <div class="tr-g-name">${gi.label}</div>
         <div class="tr-g-val" id="tr-gv-${gi.key}" style="color:${isActive ? gi.color : "#71717a"}">0</div>
-        <div class="tr-g-cost" id="tr-gc-${gi.key}">$0.000000</div>
+        <div class="tr-g-cost" id="tr-gc-${gi.key}">—</div>
         <div class="tr-g-bar"><div class="tr-g-bar-fill" id="tr-gb-${gi.key}" style="background:${gi.color};width:0%"></div></div>
       </div>`;
     }).join("");
@@ -222,8 +233,10 @@
       <div class="tr-head" id="tr-drag-handle">
         <div class="tr-logo">
           <div class="tr-logo-mark">T</div>
-          <span class="tr-logo-name">Tokenizer</span>
-          <span class="tr-platform-badge" style="background:${platform.color}20;color:${platform.color}">${platform.label}</span>
+          <div class="tr-logo-text">
+            <span class="tr-logo-name">Tokenizer</span>
+            <span class="tr-platform-badge" style="background:${platform.color}20;color:${platform.color}">${subLabel}</span>
+          </div>
         </div>
         <div class="tr-head-btns">
           <button class="tr-hbtn" id="tr-btn-min" title="Minimize">─</button>
@@ -234,7 +247,6 @@
       <div id="tr-full">
         <div class="tr-body">
 
-          <!-- INPUT TOKENS -->
           <div class="tr-section-label">INPUT</div>
           <div class="tr-count-row">
             <div class="tr-count-block">
@@ -251,8 +263,7 @@
             </div>
           </div>
 
-          <!-- OUTPUT TOKENS (from API) -->
-          <div class="tr-section-label" style="margin-top:6px">OUTPUT <span class="tr-api-badge" id="tr-api-badge">waiting...</span></div>
+          <div class="tr-section-label" style="margin-top:7px">OUTPUT <span class="tr-api-badge" id="tr-api-badge">intercepting...</span></div>
           <div class="tr-count-row">
             <div class="tr-count-block">
               <span class="tr-num tr-num-out" id="tr-num-output" style="color:#a78bfa">—</span>
@@ -264,17 +275,14 @@
             </div>
           </div>
 
-          <!-- TOTAL -->
           <div class="tr-total-row">
             <span class="tr-total-lbl">Total Cost</span>
             <span class="tr-total-val" id="tr-cost-total">$0.000000</span>
           </div>
 
-          <!-- CROSS-MODEL GRID -->
-          <div class="tr-section-label" style="margin-top:8px">TOKENIZATION BY MODEL</div>
+          <div class="tr-section-label" style="margin-top:8px">BY MODEL</div>
           <div class="tr-grid">${gridHtml}</div>
 
-          <!-- STATS BAR -->
           <div class="tr-stats">
             <div class="tr-stat"><div class="tr-stat-lbl">Chars</div><div class="tr-stat-val" id="tr-chars">0</div></div>
             <div class="tr-stat"><div class="tr-stat-lbl">Words</div><div class="tr-stat-val" id="tr-words">0</div></div>
@@ -285,7 +293,6 @@
         </div>
       </div>
 
-      <!-- MINIMIZED VIEW -->
       <div id="tr-mini" style="display:none">
         <div class="tr-mini-row">
           <span style="color:${platform.color};font-size:13px;font-weight:600" id="tr-mnum-in">0</span>
@@ -298,8 +305,8 @@
 
       <div class="tr-foot">
         <div class="tr-foot-status">
-          <span class="tr-foot-dot" style="background:${platform.color}"></span>
-          <span id="tr-status">Waiting...</span>
+          <span class="tr-foot-dot" id="tr-status-dot" style="background:${platform.color}"></span>
+          <span id="tr-status">Detected — start typing</span>
         </div>
         <span class="tr-session-info" id="tr-session-calls">0 calls</span>
       </div>
@@ -338,51 +345,51 @@
   // ═══════════════════════════════════════════════════
 
   let overlayEl = null;
-  let isVisible = false;
   let isMinimized = false;
   let isHidden = false;
   let prevInputTok = 0;
   let sessionCalls = 0;
 
   // ═══════════════════════════════════════════════════
-  // SHOW / HIDE
+  // SHOW OVERLAY IMMEDIATELY ON LOAD
   // ═══════════════════════════════════════════════════
 
-  function showOverlay() {
-    if (isHidden) return;
-    if (!overlayEl) {
-      overlayEl = buildOverlay();
+  function initOverlay() {
+    if (isHidden || overlayEl) return;
+    overlayEl = buildOverlay();
+    overlayEl.classList.add("tr-visible");
 
-      overlayEl.querySelector("#tr-btn-min").addEventListener("click", () => {
-        isMinimized = !isMinimized;
-        overlayEl.querySelector("#tr-full").style.display = isMinimized ? "none" : "block";
-        overlayEl.querySelector("#tr-mini").style.display = isMinimized ? "flex" : "none";
-        overlayEl.classList.toggle("tr-mini-mode", isMinimized);
-        overlayEl.querySelector("#tr-btn-min").textContent = isMinimized ? "□" : "─";
-      });
-      overlayEl.querySelector("#tr-btn-close").addEventListener("click", () => {
-        isHidden = true;
-        isVisible = false;
-        overlayEl.style.display = "none";
-      });
-    }
-    if (!isVisible) {
-      overlayEl.style.display = "";
-      overlayEl.classList.add("tr-visible");
-      isVisible = true;
-    }
+    overlayEl.querySelector("#tr-btn-min").addEventListener("click", () => {
+      isMinimized = !isMinimized;
+      overlayEl.querySelector("#tr-full").style.display = isMinimized ? "none" : "block";
+      overlayEl.querySelector("#tr-mini").style.display = isMinimized ? "flex" : "none";
+      overlayEl.classList.toggle("tr-mini-mode", isMinimized);
+      overlayEl.querySelector("#tr-btn-min").textContent = isMinimized ? "□" : "─";
+    });
+
+    overlayEl.querySelector("#tr-btn-close").addEventListener("click", () => {
+      isHidden = true;
+      overlayEl.style.display = "none";
+    });
+  }
+
+  // Pulse the status dot to show it's alive
+  function pulseStatus(text, color) {
+    const dot = document.getElementById("tr-status-dot");
+    const status = document.getElementById("tr-status");
+    if (dot) dot.style.background = color || platform.color;
+    if (status) status.textContent = text;
   }
 
   // ═══════════════════════════════════════════════════
-  // UPDATE FROM INPUT (live estimation)
+  // UPDATE FROM INPUT
   // ═══════════════════════════════════════════════════
 
   function updateFromInput(text) {
     if (!text || !text.trim()) {
-      if (overlayEl) document.getElementById("tr-status").textContent = "Waiting...";
+      pulseStatus("Detected — start typing", platform.color);
       return;
     }
-    showOverlay();
 
     const counts = countAll(text);
     const n = counts[platform.tok] || 0;
@@ -390,7 +397,6 @@
     const chars = text.length;
     const words = text.trim().split(/\s+/).length;
 
-    // Hero input number
     const numEl = document.getElementById("tr-num-input");
     if (numEl) {
       numEl.textContent = n.toLocaleString();
@@ -402,17 +408,16 @@
       }
     }
 
-    // Input cost
     const icEl = document.getElementById("tr-cost-input");
     if (icEl) icEl.textContent = "$" + inputCost.toFixed(6);
 
-    // Total (input only until API fires)
+    // Update total
     const outCostEl = document.getElementById("tr-cost-output");
+    const outCost = (outCostEl && outCostEl.dataset.value) ? parseFloat(outCostEl.dataset.value) : 0;
     const totalEl = document.getElementById("tr-cost-total");
-    const outCost = outCostEl && outCostEl.dataset.value ? parseFloat(outCostEl.dataset.value) : 0;
     if (totalEl) totalEl.textContent = "$" + (inputCost + outCost).toFixed(6);
 
-    // Cross-model grid
+    // Grid
     const mx = Math.max(...Object.values(counts), 1);
     for (const gi of GRID_INFO) {
       const v = counts[gi.key] || 0;
@@ -421,7 +426,7 @@
       const gc = document.getElementById("tr-gc-" + gi.key);
       const be = document.getElementById("tr-gb-" + gi.key);
       if (ve) ve.textContent = v.toLocaleString();
-      if (gc) gc.textContent = "$" + c.toFixed(6);
+      if (gc) gc.textContent = v > 0 ? "$" + c.toFixed(5) : "—";
       if (be) be.style.width = (v / mx * 100) + "%";
     }
 
@@ -433,74 +438,63 @@
     if (chEl) chEl.textContent = chars.toLocaleString();
     if (wdEl) wdEl.textContent = words.toLocaleString();
     if (rtEl) rtEl.textContent = n > 0 ? (chars / n).toFixed(1) : "—";
-
-    // Cheapest model
     if (cpEl && n > 0) {
       const cheapest = GRID_INFO.reduce((best, gi) => {
         const cost = calcCost(counts[gi.key] || 0, gi.key);
         return cost < best.cost ? { gi, cost } : best;
       }, { gi: null, cost: Infinity });
-      if (cheapest.gi) {
-        cpEl.textContent = cheapest.gi.label;
-        cpEl.style.color = cheapest.gi.color;
-      }
+      if (cheapest.gi) { cpEl.textContent = cheapest.gi.label; cpEl.style.color = cheapest.gi.color; }
     }
 
-    // Mini
     const mnEl = document.getElementById("tr-mnum-in");
     if (mnEl) mnEl.textContent = n.toLocaleString();
 
-    const stEl = document.getElementById("tr-status");
-    if (stEl) stEl.textContent = `Monitoring · ${n.toLocaleString()} tokens`;
+    pulseStatus(`Monitoring · ${n.toLocaleString()} tokens`, platform.color);
   }
 
   // ═══════════════════════════════════════════════════
-  // UPDATE FROM API (confirmed output tokens)
+  // UPDATE FROM API (confirmed output)
   // ═══════════════════════════════════════════════════
 
   function updateFromAPI(inputTokens, outputTokens) {
-    showOverlay();
     sessionCalls++;
 
-    // Update input (use API value as ground truth if available)
     if (inputTokens > 0) {
       const numEl = document.getElementById("tr-num-input");
       if (numEl) numEl.textContent = inputTokens.toLocaleString();
-      const inputCost = (inputTokens / 1_000_000) * (PRICING_LOCAL[platform.tok]?.input || 1);
+      const inCost = (inputTokens / 1_000_000) * (PRICING_LOCAL[platform.tok]?.input || 1);
       const icEl = document.getElementById("tr-cost-input");
-      if (icEl) icEl.textContent = "$" + inputCost.toFixed(6);
+      if (icEl) icEl.textContent = "$" + inCost.toFixed(6);
     }
 
-    // Output
-    const numOutEl = document.getElementById("tr-num-output");
-    const costOutEl = document.getElementById("tr-cost-output");
-    const badgeEl = document.getElementById("tr-api-badge");
-    const totalEl = document.getElementById("tr-cost-total");
+    if (outputTokens > 0) {
+      const numOutEl = document.getElementById("tr-num-output");
+      const costOutEl = document.getElementById("tr-cost-output");
+      const badgeEl = document.getElementById("tr-api-badge");
+      const totalEl = document.getElementById("tr-cost-total");
 
-    if (outputTokens > 0 && numOutEl) {
-      numOutEl.textContent = outputTokens.toLocaleString();
+      if (numOutEl) numOutEl.textContent = outputTokens.toLocaleString();
+
       const outCost = (outputTokens / 1_000_000) * (PRICING_LOCAL[platform.tok]?.output || 3);
-      if (costOutEl) {
-        costOutEl.textContent = "$" + outCost.toFixed(6);
-        costOutEl.dataset.value = outCost;
-      }
-      if (badgeEl) badgeEl.textContent = "✓ API";
+      if (costOutEl) { costOutEl.textContent = "$" + outCost.toFixed(6); costOutEl.dataset.value = outCost; }
+      if (badgeEl) { badgeEl.textContent = "✓ captured"; badgeEl.style.color = "#6ee7b7"; }
 
-      // Recalculate total
-      const inputCost = parseFloat(document.getElementById("tr-cost-input")?.textContent?.replace("$", "") || 0);
-      if (totalEl) totalEl.textContent = "$" + (inputCost + outCost).toFixed(6);
+      const inCostStr = document.getElementById("tr-cost-input")?.textContent?.replace("$","") || "0";
+      const inCost = parseFloat(inCostStr) || 0;
+      if (totalEl) totalEl.textContent = "$" + (inCost + outCost).toFixed(6);
 
-      // Mini total
       const mcEl = document.getElementById("tr-mcost-total");
-      if (mcEl) mcEl.textContent = "$" + (inputCost + outCost).toFixed(4);
+      if (mcEl) mcEl.textContent = "$" + (inCost + outCost).toFixed(4);
 
       const mnOutEl = document.getElementById("tr-mnum-out");
       if (mnOutEl) mnOutEl.textContent = outputTokens.toLocaleString();
     }
 
-    // Session calls
     const scEl = document.getElementById("tr-session-calls");
     if (scEl) scEl.textContent = `${sessionCalls} call${sessionCalls !== 1 ? "s" : ""}`;
+
+    pulseStatus("Response captured ✓", "#10b981");
+    setTimeout(() => pulseStatus(`Monitoring · session: ${sessionCalls} call${sessionCalls !== 1 ? "s" : ""}`, platform.color), 3000);
   }
 
   // ═══════════════════════════════════════════════════
@@ -536,12 +530,13 @@
     if (el.getAttribute("contenteditable")) {
       new MutationObserver(handler).observe(el, { childList: true, subtree: true, characterData: true });
     }
+    pulseStatus("Input detected — ready", platform.color);
   }
 
   function poll() {
     const el = findInput();
     if (el) attach(el);
-    setTimeout(poll, 2000);
+    setTimeout(poll, 1500);
   }
 
   new MutationObserver(() => {
@@ -549,7 +544,41 @@
     if (el && el !== activeInput) attach(el);
   }).observe(document.body, { childList: true, subtree: true });
 
-  poll();
-  console.log(`[Tokenizer v0.2.0] Active on ${platform.id} (${platform.label})`);
+  // ═══════════════════════════════════════════════════
+  // ROUTE CHANGE DETECTION (SPA navigation)
+  // ═══════════════════════════════════════════════════
+
+  let lastPath = window.location.pathname;
+  setInterval(() => {
+    if (window.location.pathname !== lastPath) {
+      lastPath = window.location.pathname;
+      activeInput = null; // force re-attach after navigation
+      // Update sub-label for Claude route changes
+      if (platform.id === "claude") {
+        const badge = overlayEl?.querySelector(".tr-platform-badge");
+        if (badge && typeof platform.subLabel === "function") {
+          badge.textContent = platform.subLabel();
+        }
+      }
+      pulseStatus("Detected — start typing", platform.color);
+    }
+  }, 1000);
+
+  // ═══════════════════════════════════════════════════
+  // BOOT — show overlay immediately
+  // ═══════════════════════════════════════════════════
+
+  // Show as soon as DOM is ready — don't wait for user input
+  function boot() {
+    initOverlay();
+    poll();
+    console.log(`[Tokenizer v0.3.0] Active on ${platform.id} (${platform.label})`);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot);
+  } else {
+    boot();
+  }
 
 })();
