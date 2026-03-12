@@ -1,0 +1,41 @@
+name: Build Safari Extension
+
+on:
+  push:
+    branches: [main]
+    paths: ['**.js', '**.css', '**.html', '**.json', '!cli/**']
+  workflow_dispatch:
+
+jobs:
+  build-safari:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Convert to Safari Web Extension
+        run: |
+          xcrun safari-web-extension-converter . \
+            --project-location ./safari-build \
+            --app-name "Tokenizer" \
+            --bundle-identifier net.thedigitalduo.tokenizer \
+            --swift \
+            --no-open \
+            --force
+
+      - name: Build Safari app
+        run: |
+          cd safari-build/Tokenizer
+          xcodebuild \
+            -scheme "Tokenizer (macOS)" \
+            -configuration Release \
+            -derivedDataPath ./build \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Upload Safari build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tokenizer-safari-${{ github.run_number }}
+          path: safari-build/
+          retention-days: 30

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Tokenizer — Live Token & Cost Monitor",
-  "version": "0.4.0",
-  "description": "Live token counting on every LLM as you type. See tokens, cost, and cross-model comparison on 30+ AI platforms including ChatGPT, Claude, Gemini, Grok, DeepSeek, Mistral, Copilot, and more.",
+  "version": "0.5.0",
+  "description": "Live token counting on every LLM as you type. 30+ cloud platforms + local LLMs (Ollama, LM Studio, Open WebUI, Jan). ChatGPT, Claude, Gemini, Grok, DeepSeek, and more.",
 
   "permissions": [
     "activeTab",
@@ -45,7 +45,10 @@
     "https://console.anthropic.com/*",
     "https://lmstudio.ai/*",
     "https://jan.ai/*",
-    "https://msty.app/*"
+    "https://msty.app/*",
+    "http://localhost:*/*",
+    "http://127.0.0.1:*/*",
+    "http://0.0.0.0:*/*"
   ],
 
   "background": {
@@ -90,7 +93,9 @@
         "https://console.anthropic.com/*",
         "https://lmstudio.ai/*",
         "https://jan.ai/*",
-        "https://msty.app/*"
+        "https://msty.app/*",
+        "http://localhost:*/*",
+        "http://127.0.0.1:*/*"
       ],
       "js": ["content.js"],
       "css": ["overlay.css"],

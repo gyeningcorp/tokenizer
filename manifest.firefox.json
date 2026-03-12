@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Tokenizer — Live Token & Cost Monitor",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Live token counting on every LLM as you type. See tokens, cost, and cross-model comparison on 30+ AI platforms.",
 
   "permissions": [

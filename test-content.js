@@ -291,67 +291,6 @@
       subLabel: () => "Msty (Local)",
       selectors: ['textarea','div[contenteditable="true"]'],
     },
-
-    // ── LOCAL / SELF-HOSTED (localhost) ───────────────
-    ollama_webui: {
-      match: /localhost:3000|127\.0\.0\.1:3000|localhost:8080|127\.0\.0\.1:8080/,
-      label: "Open WebUI", color: "#a78bfa", tok: "cl100k_base", model: "local",
-      costPer1k: 0, exact: false,
-      subLabel: () => {
-        const m = document.querySelector('[class*="model"],[data-model],.model-selector');
-        return m ? "Open WebUI · " + m.textContent.trim().slice(0,15) : "Open WebUI";
-      },
-      selectors: ['textarea','div[contenteditable="true"]','#chat-input','[placeholder*="message"]','[placeholder*="Send"]'],
-    },
-
-    ollama: {
-      match: /localhost:11434|127\.0\.0\.1:11434/,
-      label: "Ollama", color: "#f97316", tok: "cl100k_base", model: "local",
-      costPer1k: 0, exact: false,
-      subLabel: () => "Ollama (Local)",
-      selectors: ['textarea','div[contenteditable="true"]'],
-    },
-
-    lmstudio_local: {
-      match: /localhost:1234|127\.0\.0\.1:1234/,
-      label: "LM Studio", color: "#a855f7", tok: "cl100k_base", model: "local",
-      costPer1k: 0, exact: false,
-      subLabel: () => "LM Studio (Local)",
-      selectors: ['textarea','div[contenteditable="true"]','[placeholder*="Type"]','[placeholder*="Send"]'],
-    },
-
-    jan_local: {
-      match: /localhost:1337|127\.0\.0\.1:1337/,
-      label: "Jan", color: "#64748b", tok: "cl100k_base", model: "local",
-      costPer1k: 0, exact: false,
-      subLabel: () => "Jan (Local)",
-      selectors: ['textarea','div[contenteditable="true"]'],
-    },
-
-    anything_llm: {
-      match: /localhost:3001|127\.0\.0\.1:3001/,
-      label: "AnythingLLM", color: "#10b981", tok: "cl100k_base", model: "local",
-      costPer1k: 0, exact: false,
-      subLabel: () => "AnythingLLM (Local)",
-      selectors: ['textarea','div[contenteditable="true"]','[placeholder*="Send a message"]'],
-    },
-
-    localai: {
-      match: /localhost:8080|127\.0\.0\.1:8080/,
-      label: "LocalAI", color: "#3b82f6", tok: "cl100k_base", model: "local",
-      costPer1k: 0, exact: false,
-      subLabel: () => "LocalAI (Local)",
-      selectors: ['textarea','div[contenteditable="true"]'],
-    },
-
-    // Generic localhost fallback — catches any other local LLM UI
-    localhost_generic: {
-      match: /^localhost|^127\.0\.0\.1/,
-      label: "Local LLM", color: "#71717a", tok: "cl100k_base", model: "local",
-      costPer1k: 0, exact: false,
-      subLabel: () => "Local LLM · " + window.location.port,
-      selectors: ['textarea','div[contenteditable="true"]','[placeholder*="message"]','[placeholder*="Send"]','[placeholder*="Ask"]','[placeholder*="Type"]'],
-    },
   };
 
   // Detect current platform
@@ -371,7 +310,7 @@
 
   (function injectScript() {
     const s = document.createElement("script");
-    s.src = chrome.runtime.getURL("injected.js");
+    s.src = "data:text/javascript,";
     s.onload = () => s.remove();
     (document.head || document.documentElement).appendChild(s);
   })();
@@ -380,7 +319,7 @@
     if (e.source !== window || !e.data || e.data.__source !== "tokenizer-interceptor") return;
     if (e.data.type === "api_tokens") {
       const { inputTokens, outputTokens } = e.data;
-      chrome.runtime.sendMessage({ type: "api_tokens", inputTokens, outputTokens, model: platform.model }).catch(() => {});
+      /* no-op */
       if (inputTokens > 0 || outputTokens > 0) updateFromAPI(inputTokens, outputTokens);
     }
   });
@@ -725,54 +664,33 @@
     return null;
   }
 
-  let activeInput=null, debTimer=null, bodyObs=null;
+  let activeInput=null, debTimer=null;
   function attach(el){
     if(activeInput===el) return;
     activeInput=el;
-    // Disconnect body observer once input found — no more full-page watching
-    if(bodyObs){ bodyObs.disconnect(); bodyObs=null; }
-    const h=()=>{ clearTimeout(debTimer); debTimer=setTimeout(()=>updateFromInput(getText(el)),150); };
-    el.addEventListener("input",h);
-    // Only use MutationObserver on contenteditable — watch the element itself, not subtree
-    if(el.getAttribute("contenteditable")){
-      new MutationObserver(h).observe(el,{childList:true,characterData:true,subtree:false});
-    }
+    const h=()=>{ clearTimeout(debTimer); debTimer=setTimeout(()=>updateFromInput(getText(el)),80); };
+    el.addEventListener("input",h); el.addEventListener("keyup",h);
+    if(el.getAttribute("contenteditable")) new MutationObserver(h).observe(el,{childList:true,subtree:true,characterData:true});
     pulse("Input detected — ready", platform.color);
   }
 
-  // Poll stops once input is found
-  let pollTimer=null;
-  function poll(){
-    const el=findInput();
-    if(el){ attach(el); return; } // done — no more polling
-    pollTimer=setTimeout(poll,1500);
-  }
+  function poll(){ const el=findInput(); if(el) attach(el); setTimeout(poll,1500); }
 
-  // Body observer only runs until input is found (then detaches itself)
-  bodyObs = new MutationObserver(()=>{
-    const el=findInput();
-    if(el&&el!==activeInput) attach(el); // attach() will disconnect bodyObs
-  });
-  bodyObs.observe(document.body,{childList:true,subtree:true});
+  new MutationObserver(()=>{ const el=findInput(); if(el&&el!==activeInput) attach(el); })
+    .observe(document.body,{childList:true,subtree:true});
 
-  // SPA route change — lightweight interval, reattaches only on actual nav
+  // SPA route change handler
   let lastPath=window.location.pathname;
   setInterval(()=>{
-    if(window.location.pathname===lastPath) return;
-    lastPath=window.location.pathname;
-    activeInput=null;
-    // Re-enable body observer for new route
-    if(!bodyObs){
-      bodyObs=new MutationObserver(()=>{ const el=findInput(); if(el&&el!==activeInput) attach(el); });
-      bodyObs.observe(document.body,{childList:true,subtree:true});
+    if(window.location.pathname!==lastPath){
+      lastPath=window.location.pathname; activeInput=null;
+      if(typeof platform.subLabel==="function"){
+        const badge=overlayEl?.querySelector(".tr-platform-badge");
+        if(badge) badge.textContent=platform.subLabel();
+      }
+      pulse("Detected — start typing", platform.color);
     }
-    if(typeof platform.subLabel==="function"){
-      const badge=overlayEl?.querySelector(".tr-platform-badge");
-      if(badge) badge.textContent=platform.subLabel();
-    }
-    pulse("Detected — start typing", platform.color);
-    poll();
-  },2000);
+  },1000);
 
   // ═══════════════════════════════════════════════════
   // BOOT
@@ -788,3 +706,4 @@
   else boot();
 
 })();
+
