@@ -466,6 +466,62 @@
   }
 
   // ═══════════════════════════════════════════════════
+  // ENERGY ENGINE
+  // Data center energy per 1M tokens (Wh) — based on published
+  // ML inference benchmarks and IEA/Goldman Sachs AI energy reports.
+  // Sources: Goldman Sachs (2024), IEA AI Energy Report (2024),
+  //          Patterson et al. "Carbon Footprint of ML" (2022)
+  // US avg grid: 0.386 kg CO2/kWh (EPA 2023 eGRID)
+  // ═══════════════════════════════════════════════════
+
+  // Wh per 1M tokens (input inference only)
+  const ENERGY_WH_PER_1M = {
+    o200k_base:  4000,   // GPT-4o class — ~4 Wh/1K tokens
+    cl100k_base: 8000,   // GPT-4 class (older dense model)
+    claude:      3500,   // Claude Sonnet — Anthropic's efficient infra
+    gemini:      2000,   // Gemini — Google TPU v5 efficiency advantage
+    llama3:      5000,   // LLaMA 3 70B — open source, less optimized DC
+    mistral:     3000,   // Mistral — efficient MoE architecture
+    deepseek:    2500,   // DeepSeek — MoE, Chinese DC infrastructure
+    grok:        4500,   // Grok — xAI data center (Memphis)
+    codex:       1500,   // Codex / GPT-4o-mini — small model
+  };
+
+  // kg CO2 per kWh — US average (EPA 2023)
+  const CO2_KG_PER_KWH = 0.386;
+
+  // Fun equivalents for context
+  const GOOGLE_SEARCH_WH = 0.3;   // 1 Google search ≈ 0.3 Wh
+  const LED_BULB_10W_WH  = 10;    // 10W LED for 1 hour = 10 Wh
+  const IPHONE_CHARGE_WH = 19;    // Full iPhone charge ≈ 19 Wh
+
+  function calcEnergy(tokens, tokKey) {
+    const whPer1M = ENERGY_WH_PER_1M[tokKey] || 4000;
+    const wh      = (tokens / 1_000_000) * whPer1M;
+    const kwh     = wh / 1000;
+    const co2g    = kwh * CO2_KG_PER_KWH * 1000; // grams
+    const searches = wh / GOOGLE_SEARCH_WH;
+    return { wh, kwh, co2g, searches };
+  }
+
+  function fmtEnergy(wh) {
+    if (wh < 0.001) return (wh * 1000).toFixed(4) + " μWh";
+    if (wh < 1)     return (wh * 1000).toFixed(3) + " mWh";
+    if (wh < 1000)  return wh.toFixed(3) + " Wh";
+    return (wh / 1000).toFixed(4) + " kWh";
+  }
+
+  function fmtEquiv(wh, searches) {
+    if (wh < GOOGLE_SEARCH_WH * 0.1) return "< 1/10 Google search";
+    if (searches < 1) return `${(searches * 100).toFixed(0)}% of 1 Google search`;
+    if (searches < 10) return `≈ ${searches.toFixed(1)} Google searches`;
+    const ledSec = (wh / LED_BULB_10W_WH) * 3600;
+    if (ledSec < 60) return `LED bulb for ${ledSec.toFixed(0)}s`;
+    if (ledSec < 3600) return `LED bulb for ${(ledSec/60).toFixed(0)}min`;
+    return `LED bulb for ${(ledSec/3600).toFixed(1)}hr`;
+  }
+
+  // ═══════════════════════════════════════════════════
   // OVERLAY
   // ═══════════════════════════════════════════════════
 
@@ -544,6 +600,31 @@
             <div class="tr-stat"><div class="tr-stat-lbl">Words</div><div class="tr-stat-val" id="tr-words">0</div></div>
             <div class="tr-stat"><div class="tr-stat-lbl">Chars/Tok</div><div class="tr-stat-val" id="tr-ratio">—</div></div>
             <div class="tr-stat"><div class="tr-stat-lbl">Cheapest</div><div class="tr-stat-val" id="tr-cheapest" style="color:#10b981">—</div></div>
+          </div>
+
+          <div class="tr-energy-block" id="tr-energy-block">
+            <div class="tr-energy-head">
+              <span class="tr-energy-icon">⚡</span>
+              <span class="tr-section-label" style="margin:0">DATA CENTER POWER</span>
+              <span class="tr-energy-src" title="Based on IEA AI Energy Report 2024 + EPA eGRID 2023">est.</span>
+            </div>
+            <div class="tr-energy-row">
+              <div class="tr-energy-stat">
+                <div class="tr-energy-lbl">Energy Used</div>
+                <div class="tr-energy-val" id="tr-energy-wh" style="color:#f59e0b">—</div>
+              </div>
+              <div class="tr-energy-stat">
+                <div class="tr-energy-lbl">CO₂ Emitted</div>
+                <div class="tr-energy-val" id="tr-energy-co2" style="color:#6ee7b7">—</div>
+              </div>
+            </div>
+            <div class="tr-energy-equiv" id="tr-energy-equiv">—</div>
+            <div class="tr-energy-bar-wrap">
+              <div class="tr-energy-bar-track">
+                <div class="tr-energy-bar-fill" id="tr-energy-bar" style="width:0%;background:linear-gradient(90deg,#f59e0b,#ef4444)"></div>
+              </div>
+              <span class="tr-energy-bar-lbl" id="tr-energy-bar-lbl">0 searches equiv.</span>
+            </div>
           </div>
         </div>
       </div>
@@ -664,6 +745,30 @@
     if(cpEl&&n>0){
       const cheapest=GRID_INFO.reduce((b,gi)=>{ const c=calcInputCost(counts[gi.key]||0,gi.key); return c<b.c?{gi,c}:b; },{gi:null,c:Infinity});
       if(cheapest.gi){cpEl.textContent=cheapest.gi.label;cpEl.style.color=cheapest.gi.color;}
+    }
+
+    // Energy update
+    if(n>0){
+      const eng=calcEnergy(n, platform.tok);
+      const whEl=document.getElementById("tr-energy-wh");
+      const co2El=document.getElementById("tr-energy-co2");
+      const eqEl=document.getElementById("tr-energy-equiv");
+      const barEl=document.getElementById("tr-energy-bar");
+      const barLblEl=document.getElementById("tr-energy-bar-lbl");
+      if(whEl) whEl.textContent=fmtEnergy(eng.wh);
+      if(co2El) co2El.textContent=eng.co2g<0.001?`${(eng.co2g*1000000).toFixed(2)} μg`
+        :eng.co2g<1?`${(eng.co2g*1000).toFixed(3)} mg`
+        :eng.co2g<1000?`${eng.co2g.toFixed(3)} g`
+        :`${(eng.co2g/1000).toFixed(4)} kg`;
+      if(eqEl) eqEl.textContent=fmtEquiv(eng.wh, eng.searches);
+      if(barEl){
+        // Scale bar: 0–100 searches maps to 0–100%
+        const pct=Math.min(100, (eng.searches/100)*100);
+        barEl.style.width=Math.max(2,pct)+"%";
+      }
+      if(barLblEl) barLblEl.textContent=eng.searches<1
+        ?`< 1 search equiv.`
+        :`${eng.searches.toFixed(1)} search${eng.searches>=2?"es":""} equiv.`;
     }
 
     const mnEl=document.getElementById("tr-mnum-in");
