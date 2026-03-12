@@ -1,6 +1,6 @@
 /* Tokenizer Extension Overlay v0.2.0 — injected into LLM pages */
 
-#Tokenizer-root {
+#tokenizer-root {
   --tr-m: 'Segoe UI', system-ui, -apple-system, sans-serif;
   position: fixed;
   bottom: 22px;
@@ -22,16 +22,16 @@
   line-height: 1.4;
   user-select: none;
 }
-#Tokenizer-root.tr-visible {
+#tokenizer-root.tr-visible {
   opacity: 1;
   transform: translateY(0) scale(1);
   pointer-events: auto;
 }
-#Tokenizer-root.tr-mini-mode {
+#tokenizer-root.tr-mini-mode {
   width: auto;
   min-width: 180px;
 }
-#Tokenizer-root * {
+#tokenizer-root * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
