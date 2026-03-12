@@ -60,6 +60,14 @@ cd tokenroute
 1. `chrome://extensions` → Developer mode ON → Load unpacked → select `tokenroute/`
 2. Edit files → click the refresh icon on the extension card → reload the LLM tab
 
+**Microsoft Edge:**
+1. `edge://extensions` → Developer mode ON (bottom-left) → Load unpacked → select `tokenroute/`
+2. Same manifest as Chrome — no changes needed
+3. For store submission: use `manifest.edge.json` (adds `minimum_edge_version`)
+
+**Brave:**
+1. `brave://extensions` → Developer mode ON → Load unpacked → select `tokenroute/`
+
 **Firefox:**
 1. Rename / copy `manifest.firefox.json` → `manifest.json`
 2. `about:debugging` → Load Temporary Add-on → select `manifest.json`

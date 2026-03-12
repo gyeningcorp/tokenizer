@@ -5,7 +5,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)](CHANGELOG.md)
 [![Chrome](https://img.shields.io/badge/Chrome-MV3-green.svg)]()
+[![Edge](https://img.shields.io/badge/Edge-MV3-blue.svg)]()
 [![Firefox](https://img.shields.io/badge/Firefox-MV2-orange.svg)]()
+[![Brave](https://img.shields.io/badge/Brave-MV3-orange.svg)]()
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 ---
@@ -46,13 +48,31 @@
 
 ## Installation
 
-### Chrome / Edge / Brave (Manifest V3)
+### Chrome (Manifest V3)
 
 1. [Download the latest release ZIP](https://github.com/gyeningcorp/tokenroute/releases/latest) and unzip it, **or** clone this repo
 2. Open `chrome://extensions`
 3. Enable **Developer mode** (toggle, top-right)
 4. Click **Load unpacked** → select the `tokenroute/` folder
 5. Visit ChatGPT, Claude, HuggingFace — start typing
+
+### Microsoft Edge (Manifest V3)
+
+Edge is Chromium-based — the exact same extension package works with no changes.
+
+1. [Download the latest release ZIP](https://github.com/gyeningcorp/tokenroute/releases/latest) and unzip it, **or** clone this repo
+2. Open `edge://extensions`
+3. Enable **Developer mode** (toggle, bottom-left)
+4. Click **Load unpacked** → select the `tokenroute/` folder
+5. Done — works identically to Chrome
+
+> For permanent install: submit to the [Microsoft Edge Add-ons Store](https://microsoftedge.microsoft.com/addons/Microsoft-Edge-Extensions-Home)
+
+### Brave (Manifest V3)
+
+1. Open `brave://extensions`
+2. Enable **Developer mode**
+3. **Load unpacked** → select the `tokenroute/` folder
 
 ### Firefox (Manifest V2)
 
