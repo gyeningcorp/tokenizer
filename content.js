@@ -511,6 +511,94 @@
     return (wh / 1000).toFixed(4) + " kWh";
   }
 
+  // ═══════════════════════════════════════════════════
+  // SYLLABLE → TOKEN BREAKDOWN ENGINE
+  // ═══════════════════════════════════════════════════
+
+  function countSyllables(word) {
+    if (!word) return 0;
+    word = word.toLowerCase().replace(/[^a-z]/g, "");
+    if (!word) return 0;
+    if (word.length <= 3) return 1;
+    // Remove silent e at end
+    word = word.replace(/e$/, "");
+    // Count vowel groups
+    const m = word.match(/[aeiouy]+/g);
+    return Math.max(1, m ? m.length : 1);
+  }
+
+  function estimateWordTokens(word) {
+    if (!word || !word.trim()) return 0;
+    const w = word.trim();
+    const l = w.length;
+    // Common single-token words
+    if (l <= 2) return 1;
+    if (l <= 4 && /^[a-z]+$/i.test(w)) return 1;
+    // Pure punctuation
+    if (/^[.,!?;:'"()\[\]{}\-]+$/.test(w)) return 1;
+    // Numbers
+    if (/^\d+$/.test(w)) return Math.ceil(l / 3);
+    // Technical / camelCase / URLs cost more
+    if (/[A-Z]/.test(w) && /[a-z]/.test(w)) {
+      return Math.max(1, Math.ceil(l / 3));
+    }
+    // Regular words: syllable-based
+    const sylls = countSyllables(w);
+    if (sylls === 1 && l <= 8) return 1;
+    if (sylls === 2 && l <= 10) return 2;
+    if (sylls === 3) return 2;
+    if (sylls >= 4) return Math.ceil(sylls * 0.8);
+    return Math.max(1, Math.ceil(l / 4));
+  }
+
+  function getChipClass(toks) {
+    if (toks <= 1) return "tr-chip-t1";
+    if (toks === 2) return "tr-chip-t2";
+    if (toks === 3) return "tr-chip-t3";
+    return "tr-chip-t4";
+  }
+
+  function buildBreakdown(text) {
+    if (!text || !text.trim()) return null;
+    // Split into words + punctuation chunks, preserving spaces
+    const chunks = text.match(/\S+|\s+/g) || [];
+    const items = [];
+    let totalCost = 0;
+    const costPer1M = PRICING_INPUT[platform.tok] || 2.50;
+
+    for (const chunk of chunks) {
+      if (!chunk.trim()) continue; // skip whitespace-only
+      const toks = estimateWordTokens(chunk);
+      const cost = (toks / 1_000_000) * costPer1M;
+      totalCost += cost;
+      const sylls = countSyllables(chunk);
+      items.push({ word: chunk, toks, cost, sylls });
+    }
+    return { items, totalCost };
+  }
+
+  function renderBreakdown(text) {
+    const el = document.getElementById("tr-chips");
+    if (!el) return;
+    if (!text || !text.trim()) {
+      el.innerHTML = '<div class="tr-chips-empty">Start typing to see token breakdown…</div>';
+      return;
+    }
+    const data = buildBreakdown(text);
+    if (!data || !data.items.length) return;
+    const isFree = platform.costPer1k === 0;
+
+    el.innerHTML = data.items.slice(0, 120).map(item => {
+      const cls = /^[.,!?;:'"()\[\]{}\-]+$/.test(item.word) ? "tr-chip-punct" : getChipClass(item.toks);
+      const costStr = isFree ? "free" : `$${item.cost.toFixed(7)}`;
+      const syllStr = item.sylls > 0 ? `${item.sylls}syl·${item.toks}tok` : `${item.toks}tok`;
+      return `<div class="tr-chip ${cls}" title="${item.toks} token${item.toks!==1?'s':''} · ${item.sylls} syllable${item.sylls!==1?'s':''} · ${costStr}">
+        <span class="tr-chip-word">${item.word.replace(/</g,"&lt;").replace(/>/g,"&gt;")}</span>
+        <span class="tr-chip-meta">${syllStr}</span>
+      </div>`;
+    }).join("") + (data.items.length > 120 ? `<div class="tr-chips-empty">+${data.items.length-120} more words…</div>` : "");
+  }
+
   function fmtEquiv(wh, searches) {
     if (wh < GOOGLE_SEARCH_WH * 0.1) return "< 1/10 Google search";
     if (searches < 1) return `${(searches * 100).toFixed(0)}% of 1 Google search`;
@@ -592,7 +680,22 @@
             <span class="tr-total-val" id="tr-cost-total">${isFree?"Free":"$0.000000"}</span>
           </div>
 
-          <div class="tr-section-label" style="margin-top:8px">BY MODEL</div>
+          <div class="tr-breakdown-block">
+            <div class="tr-breakdown-head">
+              <span class="tr-section-label" style="margin:0">TOKEN BREAKDOWN</span>
+              <div class="tr-breakdown-legend">
+                <div class="tr-legend-item"><span class="tr-legend-dot" style="background:#10b981"></span>1 tok</div>
+                <div class="tr-legend-item"><span class="tr-legend-dot" style="background:#fbbf24"></span>2 tok</div>
+                <div class="tr-legend-item"><span class="tr-legend-dot" style="background:#f97316"></span>3 tok</div>
+                <div class="tr-legend-item"><span class="tr-legend-dot" style="background:#ef4444"></span>4+ tok</div>
+              </div>
+            </div>
+            <div class="tr-chips" id="tr-chips">
+              <div class="tr-chips-empty">Start typing to see token breakdown…</div>
+            </div>
+          </div>
+
+          <div class="tr-section-label" style="margin-top:10px">BY MODEL</div>
           <div class="tr-grid">${gridHtml}</div>
 
           <div class="tr-stats">
@@ -770,6 +873,9 @@
         ?`< 1 search equiv.`
         :`${eng.searches.toFixed(1)} search${eng.searches>=2?"es":""} equiv.`;
     }
+
+    // Token breakdown chips
+    renderBreakdown(text);
 
     const mnEl=document.getElementById("tr-mnum-in");
     if(mnEl) mnEl.textContent=n.toLocaleString();
