@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to TokenRoute will be documented here.
+All notable changes to Tokenizer will be documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---

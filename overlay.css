@@ -1,6 +1,6 @@
-/* TokenRoute Extension Overlay v0.2.0 — injected into LLM pages */
+/* Tokenizer Extension Overlay v0.2.0 — injected into LLM pages */
 
-#tokenroute-root {
+#Tokenizer-root {
   --tr-m: 'Segoe UI', system-ui, -apple-system, sans-serif;
   position: fixed;
   bottom: 22px;
@@ -22,16 +22,16 @@
   line-height: 1.4;
   user-select: none;
 }
-#tokenroute-root.tr-visible {
+#Tokenizer-root.tr-visible {
   opacity: 1;
   transform: translateY(0) scale(1);
   pointer-events: auto;
 }
-#tokenroute-root.tr-mini-mode {
+#Tokenizer-root.tr-mini-mode {
   width: auto;
   min-width: 180px;
 }
-#tokenroute-root * {
+#Tokenizer-root * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;

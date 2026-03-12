@@ -1,15 +1,15 @@
 /**
- * TokenRoute — injected.js
+ * Tokenizer — injected.js
  * Runs in PAGE context (not extension sandbox).
  * Wraps fetch + XHR to intercept LLM API responses
  * and extract input/output token counts from JSON payloads.
  * Posts messages to content.js via window.postMessage.
  */
 (function () {
-  if (window.__tokenRouteInjected) return;
-  window.__tokenRouteInjected = true;
+  if (window.__TokenizerInjected) return;
+  window.__TokenizerInjected = true;
 
-  const ORIGIN = "tokenroute-interceptor";
+  const ORIGIN = "Tokenizer-interceptor";
 
   // ─── Streaming SSE parser ────────────────────────────────────────────────
   function parseSSEChunks(text) {

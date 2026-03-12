@@ -1,5 +1,5 @@
 /**
- * TokenRoute — background.js
+ * Tokenizer — background.js
  * Service Worker (Chrome MV3) / Background Script (Firefox MV2)
  * Manages session state and relays messages between content + popup.
  */

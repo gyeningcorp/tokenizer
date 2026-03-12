@@ -1,5 +1,5 @@
 /**
- * TokenRoute — popup.js
+ * Tokenizer — popup.js
  * Fetches session data from background and renders it.
  */
 
@@ -54,7 +54,7 @@ document.getElementById("btn-export").addEventListener("click", () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `tokenroute-session-${Date.now()}.csv`;
+    a.download = `Tokenizer-session-${Date.now()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   });

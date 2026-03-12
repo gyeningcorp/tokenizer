@@ -1,6 +1,6 @@
-# Contributing to TokenRoute
+# Contributing to Tokenizer
 
-Thanks for wanting to help! TokenRoute is MIT-licensed and welcomes PRs from anyone.
+Thanks for wanting to help! Tokenizer is MIT-licensed and welcomes PRs from anyone.
 
 ---
 
@@ -51,22 +51,22 @@ The overlay (`overlay.css`) and popup (`popup.html`) are plain CSS/HTML — no b
 No build tools required. It's vanilla JS.
 
 ```bash
-git clone https://github.com/gyeningcorp/tokenroute.git
-cd tokenroute
+git clone https://github.com/gyeningcorp/Tokenizer.git
+cd Tokenizer
 # Load the folder directly in Chrome as an unpacked extension
 ```
 
 **Chrome:**
-1. `chrome://extensions` → Developer mode ON → Load unpacked → select `tokenroute/`
+1. `chrome://extensions` → Developer mode ON → Load unpacked → select `Tokenizer/`
 2. Edit files → click the refresh icon on the extension card → reload the LLM tab
 
 **Microsoft Edge:**
-1. `edge://extensions` → Developer mode ON (bottom-left) → Load unpacked → select `tokenroute/`
+1. `edge://extensions` → Developer mode ON (bottom-left) → Load unpacked → select `Tokenizer/`
 2. Same manifest as Chrome — no changes needed
 3. For store submission: use `manifest.edge.json` (adds `minimum_edge_version`)
 
 **Brave:**
-1. `brave://extensions` → Developer mode ON → Load unpacked → select `tokenroute/`
+1. `brave://extensions` → Developer mode ON → Load unpacked → select `Tokenizer/`
 
 **Firefox:**
 1. Rename / copy `manifest.firefox.json` → `manifest.json`

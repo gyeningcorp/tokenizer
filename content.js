@@ -1,5 +1,5 @@
 /**
- * TokenRoute — content.js v0.2.0
+ * Tokenizer — content.js v0.2.0
  * Injected into all supported LLM pages.
  * - Injects injected.js into page context for fetch/XHR interception
  * - Monitors textarea/contenteditable for live input token counts
@@ -113,7 +113,7 @@
   // Listen for API token reports from injected.js
   window.addEventListener("message", (e) => {
     if (e.source !== window) return;
-    if (!e.data || e.data.__source !== "tokenroute-interceptor") return;
+    if (!e.data || e.data.__source !== "Tokenizer-interceptor") return;
     if (e.data.type === "api_tokens") {
       const { inputTokens, outputTokens } = e.data;
       // Forward to background
@@ -205,7 +205,7 @@
 
   function buildOverlay() {
     const root = document.createElement("div");
-    root.id = "tokenroute-root";
+    root.id = "Tokenizer-root";
 
     const gridHtml = GRID_INFO.map(gi => {
       const isActive = gi.key === platform.tok;
@@ -222,7 +222,7 @@
       <div class="tr-head" id="tr-drag-handle">
         <div class="tr-logo">
           <div class="tr-logo-mark">T</div>
-          <span class="tr-logo-name">TokenRoute</span>
+          <span class="tr-logo-name">Tokenizer</span>
           <span class="tr-platform-badge" style="background:${platform.color}20;color:${platform.color}">${platform.label}</span>
         </div>
         <div class="tr-head-btns">
@@ -550,6 +550,6 @@
   }).observe(document.body, { childList: true, subtree: true });
 
   poll();
-  console.log(`[TokenRoute v0.2.0] Active on ${platform.id} (${platform.label})`);
+  console.log(`[Tokenizer v0.2.0] Active on ${platform.id} (${platform.label})`);
 
 })();

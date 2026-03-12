@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "TokenRoute — Live Token & Cost Monitor",
+  "name": "Tokenizer — Live Token & Cost Monitor",
   "version": "0.2.0",
   "description": "Real-time token counting, input/output cost breakdown, and cross-model comparison for ChatGPT, Claude, Gemini, Codex, HuggingFace, and more. Works on Microsoft Edge, Chrome, Brave.",
   "author": "The Digital Duo",

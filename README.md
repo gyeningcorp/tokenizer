@@ -1,4 +1,4 @@
-# TokenRoute
+# Tokenizer
 
 **Real-time token counting & cost monitoring for every major LLM — as a browser extension.**
 
@@ -12,7 +12,7 @@
 
 ---
 
-> **Stop getting surprised by your LLM bills.** TokenRoute sits in your browser and shows you — in real time — exactly how many tokens you're spending, what it's costing per input and output, and how that compares across every major model. Before you send a single message.
+> **Stop getting surprised by your LLM bills.** Tokenizer sits in your browser and shows you — in real time — exactly how many tokens you're spending, what it's costing per input and output, and how that compares across every major model. Before you send a single message.
 
 ---
 
@@ -50,20 +50,20 @@
 
 ### Chrome (Manifest V3)
 
-1. [Download the latest release ZIP](https://github.com/gyeningcorp/tokenroute/releases/latest) and unzip it, **or** clone this repo
+1. [Download the latest release ZIP](https://github.com/gyeningcorp/Tokenizer/releases/latest) and unzip it, **or** clone this repo
 2. Open `chrome://extensions`
 3. Enable **Developer mode** (toggle, top-right)
-4. Click **Load unpacked** → select the `tokenroute/` folder
+4. Click **Load unpacked** → select the `Tokenizer/` folder
 5. Visit ChatGPT, Claude, HuggingFace — start typing
 
 ### Microsoft Edge (Manifest V3)
 
 Edge is Chromium-based — the exact same extension package works with no changes.
 
-1. [Download the latest release ZIP](https://github.com/gyeningcorp/tokenroute/releases/latest) and unzip it, **or** clone this repo
+1. [Download the latest release ZIP](https://github.com/gyeningcorp/Tokenizer/releases/latest) and unzip it, **or** clone this repo
 2. Open `edge://extensions`
 3. Enable **Developer mode** (toggle, bottom-left)
-4. Click **Load unpacked** → select the `tokenroute/` folder
+4. Click **Load unpacked** → select the `Tokenizer/` folder
 5. Done — works identically to Chrome
 
 > For permanent install: submit to the [Microsoft Edge Add-ons Store](https://microsoftedge.microsoft.com/addons/Microsoft-Edge-Extensions-Home)
@@ -72,7 +72,7 @@ Edge is Chromium-based — the exact same extension package works with no change
 
 1. Open `brave://extensions`
 2. Enable **Developer mode**
-3. **Load unpacked** → select the `tokenroute/` folder
+3. **Load unpacked** → select the `Tokenizer/` folder
 
 ### Firefox (Manifest V2)
 
@@ -125,7 +125,7 @@ Pricing is editable in `background.js` → `PRICING` and `content.js` → `PRICI
 ## File Structure
 
 ```
-tokenroute/
+Tokenizer/
 ├── manifest.json           # Chrome / Edge / Brave (MV3)
 ├── manifest.firefox.json   # Firefox (MV2)
 ├── background.js           # Service worker — session tracking + pricing
@@ -153,7 +153,7 @@ No build step. No dependencies. No bundler. Load the folder directly.
 - [ ] v0.3.0 — Per-model pricing selector in popup (override defaults)
 - [ ] v0.3.0 — HuggingFace Inference API key integration (see any model's tokens)
 - [ ] v0.3.0 — Mistral, Groq, Cohere platform support
-- [ ] v0.4.0 — Cloud dashboard (tokenroute.dev) with history + spend charts
+- [ ] v0.4.0 — Cloud dashboard (Tokenizer.dev) with history + spend charts
 - [ ] v0.4.0 — Claude Code CLI token tracking (companion desktop app)
 - [ ] v0.5.0 — Chrome Web Store + Firefox Add-ons Store submission
 
