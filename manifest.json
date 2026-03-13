@@ -1,13 +1,22 @@
 {
   "manifest_version": 3,
   "name": "Tokenizer — Live Token & Cost Monitor",
-  "version": "0.5.0",
+  "version": "0.5.3",
   "description": "Real-time token counts, costs & energy usage on ChatGPT, Claude, Gemini, Grok, DeepSeek + 25 more. Free, open source.",
+
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "tokenizer@gyeningcorp.com",
+      "strict_min_version": "140.0",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
+    }
+  },
 
   "permissions": [
     "activeTab",
-    "storage",
-    "scripting"
+    "storage"
   ],
 
   "host_permissions": [
@@ -51,7 +60,7 @@
   ],
 
   "background": {
-    "service_worker": "background.js"
+    "scripts": ["background.js"]
   },
 
   "content_scripts": [
