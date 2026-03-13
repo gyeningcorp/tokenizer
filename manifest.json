@@ -46,9 +46,8 @@
     "https://lmstudio.ai/*",
     "https://jan.ai/*",
     "https://msty.app/*",
-    "http://localhost:*/*",
-    "http://127.0.0.1:*/*",
-    "http://0.0.0.0:*/*"
+    "http://localhost/*",
+    "http://127.0.0.1/*"
   ],
 
   "background": {
@@ -94,8 +93,8 @@
         "https://lmstudio.ai/*",
         "https://jan.ai/*",
         "https://msty.app/*",
-        "http://localhost:*/*",
-        "http://127.0.0.1:*/*"
+        "http://localhost/*",
+        "http://127.0.0.1/*"
       ],
       "js": ["content.js"],
       "css": ["overlay.css"],
