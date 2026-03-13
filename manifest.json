@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Tokenizer — Live Token & Cost Monitor",
-  "version": "0.5.3",
+  "name": "Tokenizer Live Token and Cost Monitor",
+  "version": "0.5.4",
   "description": "Real-time token counts, costs & energy usage on ChatGPT, Claude, Gemini, Grok, DeepSeek + 25 more. Free, open source.",
 
   "browser_specific_settings": {
