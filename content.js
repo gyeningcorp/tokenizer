@@ -445,6 +445,22 @@
     codex:        0.60,
   };
 
+  // Context window sizes (max tokens) per model key
+  const CONTEXT_WINDOW = {
+    cl100k_base: 128000,
+    o200k_base:  128000,
+    claude:      200000,
+    gemini:     1000000,
+    gemini15:    128000,
+    grok:        131072,
+    deepseek:    128000,
+    mistral:     128000,
+    llama3:      128000,
+    perplexity:  127072,
+    codex:       128000,
+    default:     128000,
+  };
+
   const GRID_INFO = [
     { key: "o200k_base",  label: "GPT-4o",   color: "#10b981" },
     { key: "claude",      label: "Claude",   color: "#d97706" },
@@ -680,6 +696,25 @@
             <span class="tr-total-val" id="tr-cost-total">${isFree?"Free":"$0.000000"}</span>
           </div>
 
+          <div style="margin-top:10px;padding:8px;background:#1c1c27;border-radius:6px;border:1px solid #2d2d3d">
+            <div class="tr-section-label" style="margin:0 0 6px 0">CONTEXT WINDOW</div>
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:#9ca3af;margin-bottom:3px">
+              <span id="tr-ctx-used">0</span>
+              <span id="tr-ctx-pct">0%</span>
+              <span id="tr-ctx-max">128k</span>
+            </div>
+            <div style="background:#374151;border-radius:3px;height:6px;overflow:hidden">
+              <div id="tr-ctx-bar" style="height:100%;width:0%;background:#10b981;border-radius:3px;transition:width 0.3s ease"></div>
+            </div>
+            <div style="font-size:9px;color:#6b7280;margin-top:3px;text-align:center">
+              <span id="tr-ctx-remaining">128k remaining</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:10px">
+              <span style="color:#9ca3af">Session Cost</span>
+              <span id="tr-session-cost" style="color:#f59e0b;font-weight:bold">${isFree?"Free":"$0.000000"}</span>
+            </div>
+          </div>
+
           <div class="tr-breakdown-block">
             <div class="tr-breakdown-head">
               <span class="tr-section-label" style="margin:0">TOKEN BREAKDOWN</span>
@@ -775,6 +810,7 @@
   // ═══════════════════════════════════════════════════
 
   let overlayEl=null, isMinimized=false, isHidden=false, prevTok=0, sessionCalls=0;
+  let cumulativeTokens=0, cumulativeCost=0;
 
   function initOverlay() {
     if (isHidden || overlayEl) return;
@@ -880,7 +916,34 @@
     const mnEl=document.getElementById("tr-mnum-in");
     if(mnEl) mnEl.textContent=n.toLocaleString();
 
+    // Update context bar with current input + accumulated history
+    updateContextBar(cumulativeTokens + n);
+
     pulse(`Monitoring · ${n.toLocaleString()} tokens`, platform.color);
+  }
+
+  // ═══════════════════════════════════════════════════
+  // CONTEXT WINDOW BAR
+  // ═══════════════════════════════════════════════════
+
+  function updateContextBar(usedTokens) {
+    const maxCtx = CONTEXT_WINDOW[platform.tok] || CONTEXT_WINDOW.default;
+    const pct = Math.min(100, (usedTokens / maxCtx) * 100);
+    const bar = document.getElementById("tr-ctx-bar");
+    const usedEl = document.getElementById("tr-ctx-used");
+    const pctEl = document.getElementById("tr-ctx-pct");
+    const maxEl = document.getElementById("tr-ctx-max");
+    const remEl = document.getElementById("tr-ctx-remaining");
+    const costEl = document.getElementById("tr-session-cost");
+    if (!bar) return;
+    bar.style.width = pct + "%";
+    bar.style.background = pct < 60 ? "#10b981" : pct < 85 ? "#f59e0b" : "#ef4444";
+    if (usedEl) usedEl.textContent = usedTokens >= 1000 ? (usedTokens/1000).toFixed(1)+"k" : usedTokens;
+    if (pctEl) pctEl.textContent = pct.toFixed(1)+"%";
+    if (maxEl) maxEl.textContent = maxCtx >= 1000 ? (maxCtx/1000).toFixed(0)+"k" : maxCtx;
+    const remaining = Math.max(0, maxCtx - usedTokens);
+    if (remEl) remEl.textContent = remaining >= 1000 ? (remaining/1000).toFixed(0)+"k remaining" : remaining+" remaining";
+    if (costEl) costEl.textContent = platform.costPer1k===0 ? "Free" : "$"+cumulativeCost.toFixed(6);
   }
 
   // ═══════════════════════════════════════════════════
@@ -913,6 +976,15 @@
       const mnOutEl=document.getElementById("tr-mnum-out");
       if(mnOutEl) mnOutEl.textContent=outputTokens.toLocaleString();
     }
+    // Accumulate for context window + session cost
+    const inTok = inputTokens || 0;
+    const outTok = outputTokens || 0;
+    cumulativeTokens += inTok + outTok;
+    const inC3 = (inTok/1_000_000)*(PRICING_INPUT[platform.tok]||1);
+    const outC3 = (outTok/1_000_000)*(PRICING_OUTPUT[platform.tok]||3);
+    cumulativeCost += inC3 + outC3;
+    updateContextBar(cumulativeTokens);
+
     const scEl=document.getElementById("tr-session-calls");
     if(scEl) scEl.textContent=`${sessionCalls} call${sessionCalls!==1?"s":""}`;
     pulse("Response captured ✓","#10b981");
