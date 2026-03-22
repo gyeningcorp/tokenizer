@@ -15,6 +15,15 @@ const DEFAULT_SESSION = {
 
 let session = { ...DEFAULT_SESSION };
 
+// Persist session across service worker restarts (MV3 goes idle frequently)
+chrome.storage.local.get("tokenizer_session", (data) => {
+  if (data.tokenizer_session) session = data.tokenizer_session;
+});
+
+function saveSession() {
+  chrome.storage.local.set({ tokenizer_session: { ...session } });
+}
+
 // Pricing table (per 1M tokens, USD) — updated March 2026
 const PRICING = {
   // OpenAI
@@ -61,6 +70,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     session.inputCost += ((msg.inputTokens || 0) / 1_000_000) * p.input;
     session.outputCost += ((msg.outputTokens || 0) / 1_000_000) * p.output;
     session.calls += 1;
+    saveSession();
 
     // Broadcast to popup if open
     chrome.runtime.sendMessage({
@@ -77,6 +87,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   if (msg.type === "reset_session") {
     session = { ...DEFAULT_SESSION, startedAt: Date.now() };
+    saveSession();
     sendResponse({ ok: true });
   }
 

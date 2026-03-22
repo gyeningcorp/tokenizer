@@ -692,8 +692,12 @@
           </div>
 
           <div class="tr-total-row">
-            <span class="tr-total-lbl">Total Cost</span>
-            <span class="tr-total-val" id="tr-cost-total">${isFree?"Free":"$0.000000"}</span>
+            <span class="tr-total-lbl">This Message</span>
+            <span class="tr-total-val" style="font-size:12px;color:#9ca3af" id="tr-cost-total">${isFree?"Free":"$0.000000"}</span>
+          </div>
+          <div class="tr-total-row" style="margin-top:4px;padding-top:4px;border-top:1px solid #2d2d3d">
+            <span class="tr-total-lbl" style="font-size:9px;color:#f59e0b">CONVERSATION TOTAL</span>
+            <span class="tr-total-val" id="tr-cost-cumulative" style="color:#f59e0b">${isFree?"Free":"$0.000000"}</span>
           </div>
 
           <div style="margin-top:10px;padding:8px;background:#1c1c27;border-radius:6px;border:1px solid #2d2d3d">
@@ -944,6 +948,8 @@
     const remaining = Math.max(0, maxCtx - usedTokens);
     if (remEl) remEl.textContent = remaining >= 1000 ? (remaining/1000).toFixed(0)+"k remaining" : remaining+" remaining";
     if (costEl) costEl.textContent = platform.costPer1k===0 ? "Free" : "$"+cumulativeCost.toFixed(6);
+    const cumEl = document.getElementById("tr-cost-cumulative");
+    if (cumEl) cumEl.textContent = platform.costPer1k===0 ? "Free" : "$"+cumulativeCost.toFixed(6);
   }
 
   // ═══════════════════════════════════════════════════
@@ -984,6 +990,10 @@
     const outC3 = (outTok/1_000_000)*(PRICING_OUTPUT[platform.tok]||3);
     cumulativeCost += inC3 + outC3;
     updateContextBar(cumulativeTokens);
+
+    // Update conversation total display
+    const cumEl2 = document.getElementById("tr-cost-cumulative");
+    if (cumEl2) cumEl2.textContent = platform.costPer1k===0 ? "Free" : "$"+cumulativeCost.toFixed(6);
 
     const scEl=document.getElementById("tr-session-calls");
     if(scEl) scEl.textContent=`${sessionCalls} call${sessionCalls!==1?"s":""}`;
