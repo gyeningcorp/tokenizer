@@ -14,10 +14,7 @@
     }
   },
 
-  "permissions": [
-    "activeTab",
-    "storage"
-  ],
+  "permissions": ["storage"],
 
   "host_permissions": [
     "https://chat.openai.com/*",
