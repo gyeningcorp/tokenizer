@@ -98,19 +98,29 @@
     const contentType = response.headers.get("content-type") || "";
 
     if (contentType.includes("text/event-stream")) {
-      // Streaming: buffer all chunks
+      // Streaming: parse each chunk immediately — don't wait for stream end
       const reader = clone.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
+      let lastIn = 0, lastOut = 0;
       (async () => {
         try {
           while (true) {
             const { done, value } = await reader.read();
             if (done) break;
             buffer += decoder.decode(value, { stream: true });
+            // Parse after every chunk — emit as soon as we have new token data
+            const { inputTokens, outputTokens } = parseSSEChunks(buffer);
+            if ((inputTokens > lastIn) || (outputTokens > lastOut)) {
+              lastIn = inputTokens || lastIn;
+              lastOut = outputTokens || lastOut;
+              emit({ type: "api_tokens", inputTokens: lastIn, outputTokens: lastOut, url });
+            }
           }
+          // Final pass — ensures accuracy on last chunk
           const { inputTokens, outputTokens } = parseSSEChunks(buffer);
-          if (inputTokens > 0 || outputTokens > 0) {
+          if ((inputTokens > 0 || outputTokens > 0) &&
+              (inputTokens !== lastIn || outputTokens !== lastOut)) {
             emit({ type: "api_tokens", inputTokens, outputTokens, url });
           }
         } catch (_) {}

@@ -65,6 +65,46 @@ body {
 .btn:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.7); }
 .btn-danger:hover { background: rgba(239,68,68,0.1); color: #fca5a5; border-color: rgba(239,68,68,0.2); }
 
+.cloud-card {
+  padding: 10px 13px; border-radius: 10px;
+  background: rgba(99,102,241,0.04);
+  border: 1px solid rgba(99,102,241,0.10);
+  margin-bottom: 10px;
+}
+.cloud-row { display: flex; align-items: center; gap: 8px; }
+.cloud-icon { font-size: 13px; flex-shrink: 0; }
+.cloud-text { flex: 1; }
+.cloud-label { font-size: 10px; font-weight: 600; color: #a5b4fc; }
+.cloud-sub { font-size: 8px; color: rgba(255,255,255,0.2); margin-top: 1px; }
+.cloud-toggle {
+  position: relative; width: 32px; height: 18px; flex-shrink: 0;
+}
+.cloud-toggle input { opacity: 0; width: 0; height: 0; }
+.cloud-toggle .slider {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(255,255,255,0.08); border-radius: 9px;
+  cursor: pointer; transition: background 0.2s;
+}
+.cloud-toggle .slider::before {
+  content: ""; position: absolute; width: 14px; height: 14px;
+  left: 2px; bottom: 2px; background: rgba(255,255,255,0.3);
+  border-radius: 50%; transition: transform 0.2s, background 0.2s;
+}
+.cloud-toggle input:checked + .slider { background: rgba(99,102,241,0.4); }
+.cloud-toggle input:checked + .slider::before { transform: translateX(14px); background: #a5b4fc; }
+.cloud-toggle input:disabled + .slider { opacity: 0.4; cursor: not-allowed; }
+.cloud-upgrade {
+  display: none; margin-top: 7px; padding: 5px 0; text-align: center;
+  font-size: 8px; color: rgba(255,255,255,0.25);
+}
+.cloud-upgrade a {
+  color: #a5b4fc; text-decoration: none; font-weight: 600;
+}
+.cloud-upgrade a:hover { text-decoration: underline; }
+.cloud-upgrade.show { display: block; }
+.cloud-status { font-size: 7px; color: rgba(16,185,129,0.6); margin-top: 2px; display: none; }
+.cloud-status.show { display: block; }
+
 .foot { border-top: 1px solid rgba(255,255,255,0.04); padding-top: 8px; display: flex; gap: 6px; }
 .foot-link { font-size: 9px; color: rgba(255,255,255,0.2); text-decoration: none; flex: 1; text-align: center; padding: 4px; border-radius: 5px; transition: color 0.15s; }
 .foot-link:hover { color: #ecbb61; }
@@ -151,6 +191,24 @@ body {
       <div class="plat"><span class="pdot" style="background:#a855f7"></span><span class="pname">LM Studio</span><span class="pok">●</span></div>
       <div class="plat"><span class="pdot" style="background:#64748b"></span><span class="pname">Jan</span><span class="pok">●</span></div>
       <div class="plat"><span class="pdot" style="background:#8b5cf6"></span><span class="pname">Msty</span><span class="pok">●</span></div>
+    </div>
+  </div>
+
+  <div class="cloud-card">
+    <div class="cloud-row">
+      <span class="cloud-icon">&#9729;</span>
+      <div class="cloud-text">
+        <div class="cloud-label">Sync to Cloud</div>
+        <div class="cloud-sub">Session history, analytics &amp; reports</div>
+        <div class="cloud-status" id="cloud-status">Synced</div>
+      </div>
+      <label class="cloud-toggle">
+        <input type="checkbox" id="cloud-toggle" disabled>
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="cloud-upgrade show" id="cloud-upgrade">
+      <a href="https://tokenizer.dev/pricing" target="_blank">Upgrade to Pro — $8/mo</a> to enable cloud sync
     </div>
   </div>
 

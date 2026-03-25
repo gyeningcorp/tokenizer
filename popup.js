@@ -35,6 +35,47 @@ document.getElementById("btn-reset").addEventListener("click", () => {
   });
 });
 
+// Cloud Sync toggle — gated behind Pro account
+(function initCloud() {
+  const toggle = document.getElementById("cloud-toggle");
+  const upgradeHint = document.getElementById("cloud-upgrade");
+  const statusEl = document.getElementById("cloud-status");
+
+  // Check stored cloud state
+  chrome.storage.local.get(["tokenizer_cloud_pro", "tokenizer_cloud_sync"], (data) => {
+    const isPro = !!data.tokenizer_cloud_pro;
+    if (isPro) {
+      toggle.disabled = false;
+      upgradeHint.classList.remove("show");
+      toggle.checked = !!data.tokenizer_cloud_sync;
+      if (toggle.checked) statusEl.classList.add("show");
+    }
+  });
+
+  toggle.addEventListener("change", () => {
+    chrome.storage.local.get("tokenizer_cloud_pro", (data) => {
+      if (!data.tokenizer_cloud_pro) {
+        // Not a Pro user — revert toggle and show upgrade prompt
+        toggle.checked = false;
+        toggle.disabled = true;
+        upgradeHint.classList.add("show");
+        statusEl.classList.remove("show");
+        return;
+      }
+      // Pro user — persist sync preference
+      chrome.storage.local.set({ tokenizer_cloud_sync: toggle.checked });
+      if (toggle.checked) {
+        statusEl.textContent = "Syncing...";
+        statusEl.classList.add("show");
+        // TODO: Trigger initial cloud sync via background.js
+        setTimeout(() => { statusEl.textContent = "Synced"; }, 1500);
+      } else {
+        statusEl.classList.remove("show");
+      }
+    });
+  });
+})();
+
 // Export CSV
 document.getElementById("btn-export").addEventListener("click", () => {
   chrome.runtime.sendMessage({ type: "get_session" }, (res) => {

@@ -1038,7 +1038,7 @@
   function poll(){
     const el=findInput();
     if(el){ attach(el); return; } // done — no more polling
-    pollTimer=setTimeout(poll,1500);
+    pollTimer=setTimeout(poll,500);
   }
 
   // Body observer only runs until input is found (then detaches itself)

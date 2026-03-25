@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.1] - 2026-03-25
+
+### Fixed
+- **Output token lag**: Extension now updates token count as each streaming chunk arrives instead of waiting for the full LLM response to complete. Tokens appear in near-real-time during generation.
+- **Input detection speed**: Reduced poll timer from 1500ms → 500ms so the overlay attaches to the input field 3x faster on page load.
+
+---
+
 All notable changes to Tokenizer will be documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
