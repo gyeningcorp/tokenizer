@@ -26,12 +26,9 @@ const ENERGY_WH_PER_1M = {
   llama3:5000, mistral:3000, deepseek:2500, grok:4500,
 };
 const GRID_INFO = [
-  { key:"o200k_base", label:"GPT-4o",   color:"#10b981" },
-  { key:"claude",     label:"Claude",   color:"#d97706" },
-  { key:"gemini",     label:"Gemini",   color:"#8b5cf6" },
-  { key:"llama3",     label:"LLaMA",    color:"#fbbf24" },
-  { key:"deepseek",   label:"DeepSeek", color:"#4f8ef7" },
-  { key:"mistral",    label:"Mistral",  color:"#f97316" },
+  { key:"claude",  label:"Claude",  color:"#d97706" },
+  { key:"gemini",  label:"Gemini",  color:"#8b5cf6" },
+  { key:"llama3",  label:"Ollama",  color:"#fbbf24" },
 ];
 
 function estCl100k(t) {

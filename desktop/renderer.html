@@ -292,13 +292,9 @@
         <div class="stat-section">
           <div class="stat-section-title">Active Model</div>
           <select id="model-select" onchange="onModelChange()">
-            <option value="o200k_base">GPT-4o (o200k)</option>
             <option value="claude">Claude 3.5 Sonnet</option>
             <option value="gemini">Gemini 1.5 Pro</option>
-            <option value="llama3">LLaMA 3 70B</option>
-            <option value="deepseek">DeepSeek V3</option>
-            <option value="mistral">Mistral Large</option>
-            <option value="cl100k_base">GPT-4 (cl100k)</option>
+            <option value="llama3">Ollama (Local)</option>
           </select>
         </div>
 
@@ -337,10 +333,6 @@
           <div class="field-label">Presets</div>
           <div class="presets">
             <div class="preset-btn" onclick="applyPreset('http://localhost:11434','llama3')">Ollama</div>
-            <div class="preset-btn" onclick="applyPreset('http://localhost:1234','local')">LM Studio</div>
-            <div class="preset-btn" onclick="applyPreset('http://localhost:3001','local')">AnythingLLM</div>
-            <div class="preset-btn" onclick="applyPreset('http://localhost:1337','local')">Jan</div>
-            <div class="preset-btn" onclick="applyPreset('http://localhost:8080','local')">LocalAI</div>
           </div>
         </div>
         <div class="local-panel">
