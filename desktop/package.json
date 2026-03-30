@@ -2,6 +2,7 @@
   "name": "tokenizer-desktop",
   "version": "1.0.0",
   "description": "Tokenizer — Desktop app for token counting with local model support",
+  "author": "Christopher Gyening",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -16,11 +17,11 @@
     "directories": { "output": "dist" },
     "win": {
       "target": "nsis",
-      "icon": "../icons/icon128.png"
+      "icon": "../icons/icon256.png"
     },
     "mac": {
       "target": "dmg",
-      "icon": "../icons/icon128.png"
+      "icon": "../icons/icon256.png"
     },
     "linux": {
       "target": "AppImage"
