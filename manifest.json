@@ -49,8 +49,7 @@
     "https://aistudio.google.com/*",
     "https://platform.openai.com/*",
     "https://console.anthropic.com/*",
-    "https://lmstudio.ai/*",
-    "https://jan.ai/*",
+    "https://base44.com/*",`n    "https://lovable.dev/*",`n    "https://windsurf.com/*",`n    "https://lmstudio.ai/*",`n    "https://jan.ai/*",
     "https://msty.app/*",
     "http://localhost/*",
     "http://127.0.0.1/*"
@@ -130,5 +129,6 @@
     "128": "icons/icon128.png"
   }
 }
+
 
 
