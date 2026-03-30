@@ -105,6 +105,26 @@ body {
 .cloud-status { font-size: 7px; color: rgba(16,185,129,0.6); margin-top: 2px; display: none; }
 .cloud-status.show { display: block; }
 
+/* AI Value Card */
+.value-card {
+  padding: 11px 13px; border-radius: 10px;
+  background: linear-gradient(135deg, rgba(16,185,129,0.06), rgba(59,130,246,0.04));
+  border: 1px solid rgba(16,185,129,0.12);
+  margin-bottom: 10px;
+}
+.value-header { display: flex; align-items: center; gap: 6px; margin-bottom: 9px; }
+.value-icon { font-size: 12px; }
+.value-title { font-size: 9px; font-weight: 600; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.08em; flex: 1; }
+.value-badge { font-size: 7.5px; padding: 2px 7px; border-radius: 20px; background: rgba(16,185,129,0.12); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.2); }
+.value-stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 8px; }
+.value-stat { padding: 7px 9px; border-radius: 7px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04); }
+.value-stat-lbl { font-size: 7px; color: rgba(255,255,255,0.2); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 3px; }
+.value-stat-num { font-size: 16px; font-weight: 700; color: #6ee7b7; line-height: 1; }
+.value-savings-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 9px; border-radius: 7px; background: rgba(16,185,129,0.05); border: 1px solid rgba(16,185,129,0.1); margin-bottom: 6px; }
+.value-savings-lbl { font-size: 8px; color: rgba(255,255,255,0.3); }
+.value-savings-num { font-size: 15px; font-weight: 800; color: #34d399; }
+.value-footer { font-size: 7px; color: rgba(255,255,255,0.15); text-align: center; }
+
 .foot { border-top: 1px solid rgba(255,255,255,0.04); padding-top: 8px; display: flex; gap: 6px; }
 .foot-link { font-size: 9px; color: rgba(255,255,255,0.2); text-decoration: none; flex: 1; text-align: center; padding: 4px; border-radius: 5px; transition: color 0.15s; }
 .foot-link:hover { color: #ecbb61; }
@@ -115,7 +135,7 @@ body {
     <div class="logo">T</div>
     <div>
       <div class="title">Tokenizer</div>
-      <div class="version">v0.4.0 · 30+ LLM Platforms</div>
+      <div class="version">v0.8.0 · 30+ LLM Platforms</div>
     </div>
     <div class="status-pill"><span class="sdot"></span>Active</div>
   </div>
@@ -192,6 +212,30 @@ body {
       <div class="plat"><span class="pdot" style="background:#64748b"></span><span class="pname">Jan</span><span class="pok">●</span></div>
       <div class="plat"><span class="pdot" style="background:#8b5cf6"></span><span class="pname">Msty</span><span class="pok">●</span></div>
     </div>
+  </div>
+
+  <!-- AI Value Card -->
+  <div class="value-card" id="value-card">
+    <div class="value-header">
+      <span class="value-icon">⚡</span>
+      <span class="value-title">AI Value This Month</span>
+      <span class="value-badge" id="value-badge">calculating...</span>
+    </div>
+    <div class="value-stat-row">
+      <div class="value-stat">
+        <div class="value-stat-lbl">Monthly Spend</div>
+        <div class="value-stat-num" id="v-monthly">$0.00</div>
+      </div>
+      <div class="value-stat">
+        <div class="value-stat-lbl">Equiv. Engineer Hours</div>
+        <div class="value-stat-num" id="v-hours">0h</div>
+      </div>
+    </div>
+    <div class="value-savings-row">
+      <span class="value-savings-lbl">You saved vs hiring</span>
+      <span class="value-savings-num" id="v-savings">$0</span>
+    </div>
+    <div class="value-footer" id="v-footer">Projected from your last 7 days of usage</div>
   </div>
 
   <div class="cloud-card">

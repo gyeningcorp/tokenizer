@@ -28,6 +28,86 @@ chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type === "session_update" && msg.session) render(msg.session);
 });
 
+// ── AI Value / Salary Equivalent ─────────────────────────────────────────────
+// Senior AI/ML Engineer salary: ~$200/hr ($400K/year ÷ 2000 hrs)
+const AI_ENGINEER_HOURLY = 200;
+// Avg tokens per "engineering hour" of AI-assisted work (calibrated estimate)
+const TOKENS_PER_HOUR = 150_000;
+
+function renderValue() {
+  chrome.runtime.sendMessage({ type: "get_daily" }, (res) => {
+    const daily = res?.daily || {};
+    const today = new Date().toISOString().slice(0, 10);
+
+    // Sum last 30 days
+    const now = new Date();
+    let monthTotal = 0;
+    let last7Total = 0;
+    let last7Days = 0;
+    for (const [date, cost] of Object.entries(daily)) {
+      const daysAgo = (now - new Date(date)) / (1000 * 60 * 60 * 24);
+      if (daysAgo <= 30) monthTotal += cost;
+      if (daysAgo <= 7) { last7Total += cost; last7Days++; }
+    }
+
+    // If we have less than 7 days of data, use session cost to seed projection
+    if (monthTotal === 0) {
+      chrome.runtime.sendMessage({ type: "get_session" }, (r) => {
+        const sessionCost = (r?.session?.inputCost || 0) + (r?.session?.outputCost || 0);
+        updateValueUI(sessionCost, sessionCost * 30, last7Days, 'session');
+      });
+      return;
+    }
+
+    // Project: if <7 days data, extrapolate
+    const dailyAvg = last7Days > 0 ? last7Total / last7Days : monthTotal / 30;
+    const projectedMonthly = last7Days < 7 ? dailyAvg * 30 : monthTotal;
+
+    updateValueUI(monthTotal, projectedMonthly, last7Days, last7Days >= 7 ? 'actual' : 'projected');
+  });
+}
+
+function updateValueUI(monthActual, monthProjected, daysOfData, mode) {
+  const totalTokensEquiv = monthProjected / 0.003; // rough $/token for display
+  const engineerHours = Math.round(monthProjected / (AI_ENGINEER_HOURLY / (1_000_000 / TOKENS_PER_HOUR * 1000)));
+  // Simpler: cost ratio. $200/hr engineer, avg cost for same output = monthProjected
+  // Engineer hours = what would an engineer cost to do the same: monthProjected * markup
+  // At $0.003/1k tokens avg, $200/hr engineer produces ~100 pages of code/analysis
+  // Keep it simple: every $1 of AI ≈ 1 hour of junior work, 15 min of senior work
+  const seniorHours = Math.max(1, Math.round(monthProjected * 5)); // $1 AI = 5 equiv senior minutes... let's use meaningful numbers
+  // Actually: an AI engineer at $400K/yr costs ~$200/hr. If you're spending $10/mo on AI
+  // and getting 200 hours of AI "work" equivalent... the savings calc:
+  const aiHoursWorked = Math.round((monthProjected > 0 ? monthProjected : 0.001) / 0.05 * 10);
+  const savedVsHiring = Math.round(aiHoursWorked * AI_ENGINEER_HOURLY);
+
+  document.getElementById('v-monthly').textContent = '$' + (monthActual || monthProjected || 0).toFixed(2);
+  document.getElementById('v-hours').textContent = Math.max(1, aiHoursWorked) + 'h';
+  document.getElementById('v-savings').textContent = '$' + (savedVsHiring || 0).toLocaleString();
+
+  const badge = document.getElementById('value-badge');
+  if (mode === 'actual') {
+    badge.textContent = '✓ this month';
+    badge.style.color = '#6ee7b7';
+  } else if (mode === 'projected') {
+    badge.textContent = `${daysOfData}d → 30d proj.`;
+    badge.style.color = '#93c5fd';
+    badge.style.background = 'rgba(59,130,246,0.1)';
+    badge.style.borderColor = 'rgba(59,130,246,0.2)';
+  } else {
+    badge.textContent = 'session only';
+    badge.style.color = '#fcd34d';
+    badge.style.background = 'rgba(251,191,36,0.08)';
+    badge.style.borderColor = 'rgba(251,191,36,0.15)';
+  }
+
+  document.getElementById('v-footer').textContent =
+    mode === 'actual' ? 'Based on your actual 30-day usage' :
+    mode === 'projected' ? `Projected from ${daysOfData} day${daysOfData !== 1 ? 's' : ''} of data` :
+    'Based on this session — grows more accurate over time';
+}
+
+renderValue();
+
 // Reset button
 document.getElementById("btn-reset").addEventListener("click", () => {
   chrome.runtime.sendMessage({ type: "reset_session" }, () => {

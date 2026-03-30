@@ -13,6 +13,24 @@ const DEFAULT_SESSION = {
   startedAt: Date.now(),
 };
 
+// Daily cost accumulator for monthly projection
+// Structure: { "2026-03-29": 0.0042, ... }
+function getTodayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function accumulateDailyCost(cost) {
+  chrome.storage.local.get("tokenizer_daily", (data) => {
+    const daily = data.tokenizer_daily || {};
+    const today = getTodayKey();
+    daily[today] = (daily[today] || 0) + cost;
+    // Keep last 90 days
+    const keys = Object.keys(daily).sort();
+    if (keys.length > 90) delete daily[keys[0]];
+    chrome.storage.local.set({ tokenizer_daily: daily });
+  });
+}
+
 let session = { ...DEFAULT_SESSION };
 
 // Persist session across service worker restarts (MV3 goes idle frequently)
@@ -67,9 +85,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     const p = getPricing(msg.model || "");
     session.inputTokens += msg.inputTokens || 0;
     session.outputTokens += msg.outputTokens || 0;
+    const addedCost = ((msg.inputTokens || 0) / 1_000_000) * p.input
+                    + ((msg.outputTokens || 0) / 1_000_000) * p.output;
     session.inputCost += ((msg.inputTokens || 0) / 1_000_000) * p.input;
     session.outputCost += ((msg.outputTokens || 0) / 1_000_000) * p.output;
     session.calls += 1;
+    accumulateDailyCost(addedCost);
     saveSession();
 
     // Broadcast to popup if open
@@ -93,6 +114,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   if (msg.type === "get_pricing") {
     sendResponse({ pricing: PRICING, found: getPricing(msg.model) });
+  }
+
+  if (msg.type === "get_daily") {
+    chrome.storage.local.get("tokenizer_daily", (data) => {
+      sendResponse({ daily: data.tokenizer_daily || {} });
+    });
+    return true;
   }
 
   return true; // keep channel open for async
