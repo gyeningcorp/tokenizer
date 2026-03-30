@@ -1,5 +1,5 @@
 /**
- * Tokenizer — content.js v0.4.0
+ * Tokenizer - content.js v0.4.0
  * Live token counting on 30+ LLM platforms.
  * Auto-detects platform on page load, shows overlay immediately.
  */
@@ -8,7 +8,7 @@
   "use strict";
 
   // ═══════════════════════════════════════════════════
-  // PLATFORM REGISTRY — 30+ platforms
+  // PLATFORM REGISTRY - 30+ platforms
   // ═══════════════════════════════════════════════════
 
   const PLATFORMS = {
@@ -344,7 +344,7 @@
       selectors: ['textarea','div[contenteditable="true"]'],
     },
 
-    // Generic localhost fallback — catches any other local LLM UI
+    // Generic localhost fallback - catches any other local LLM UI
     localhost_generic: {
       match: /^localhost|^127\.0\.0\.1/,
       label: "Local LLM", color: "#71717a", tok: "cl100k_base", model: "local",
@@ -483,7 +483,7 @@
 
   // ═══════════════════════════════════════════════════
   // ENERGY ENGINE
-  // Data center energy per 1M tokens (Wh) — based on published
+  // Data center energy per 1M tokens (Wh) - based on published
   // ML inference benchmarks and IEA/Goldman Sachs AI energy reports.
   // Sources: Goldman Sachs (2024), IEA AI Energy Report (2024),
   //          Patterson et al. "Carbon Footprint of ML" (2022)
@@ -492,18 +492,18 @@
 
   // Wh per 1M tokens (input inference only)
   const ENERGY_WH_PER_1M = {
-    o200k_base:  4000,   // GPT-4o class — ~4 Wh/1K tokens
+    o200k_base:  4000,   // GPT-4o class - ~4 Wh/1K tokens
     cl100k_base: 8000,   // GPT-4 class (older dense model)
-    claude:      3500,   // Claude Sonnet — Anthropic's efficient infra
-    gemini:      2000,   // Gemini — Google TPU v5 efficiency advantage
-    llama3:      5000,   // LLaMA 3 70B — open source, less optimized DC
-    mistral:     3000,   // Mistral — efficient MoE architecture
-    deepseek:    2500,   // DeepSeek — MoE, Chinese DC infrastructure
-    grok:        4500,   // Grok — xAI data center (Memphis)
-    codex:       1500,   // Codex / GPT-4o-mini — small model
+    claude:      3500,   // Claude Sonnet - Anthropic's efficient infra
+    gemini:      2000,   // Gemini - Google TPU v5 efficiency advantage
+    llama3:      5000,   // LLaMA 3 70B - open source, less optimized DC
+    mistral:     3000,   // Mistral - efficient MoE architecture
+    deepseek:    2500,   // DeepSeek - MoE, Chinese DC infrastructure
+    grok:        4500,   // Grok - xAI data center (Memphis)
+    codex:       1500,   // Codex / GPT-4o-mini - small model
   };
 
-  // kg CO2 per kWh — US average (EPA 2023)
+  // kg CO2 per kWh - US average (EPA 2023)
   const CO2_KG_PER_KWH = 0.386;
 
   // Fun equivalents for context
@@ -575,7 +575,7 @@
   }
 
   function buildBreakdown(text) {
-    if (!text || !text.trim()) return null;
+    if (!text || !text.replace(/[\n\r\t\u200b\u00a0\uFEFF\s]/g,"")) return null;
     // Split into words + punctuation chunks, preserving spaces
     const chunks = text.match(/\S+|\s+/g) || [];
     const items = [];
@@ -596,7 +596,7 @@
   function renderBreakdown(text) {
     const el = document.getElementById("tr-chips");
     if (!el) return;
-    if (!text || !text.trim()) {
+    if (!text || !text.replace(/[\n\r\t\u200b\u00a0\uFEFF\s]/g,"")) {
       el.innerHTML = '<div class="tr-chips-empty">Start typing to see token breakdown…</div>';
       return;
     }
@@ -642,7 +642,7 @@
       return `<div class="tr-g ${isActive?"tr-g-active":""}">
         <div class="tr-g-name">${gi.label}</div>
         <div class="tr-g-val" id="tr-gv-${gi.key}" style="color:${isActive?gi.color:"#71717a"}">0</div>
-        <div class="tr-g-cost" id="tr-gc-${gi.key}">—</div>
+        <div class="tr-g-cost" id="tr-gc-${gi.key}">-</div>
         <div class="tr-g-bar"><div class="tr-g-bar-fill" id="tr-gb-${gi.key}" style="background:${gi.color};width:0%"></div></div>
       </div>`;
     }).join("");
@@ -683,11 +683,11 @@
           <div class="tr-section-label" style="margin-top:7px">OUTPUT <span class="tr-api-badge" id="tr-api-badge">intercepting...</span></div>
           <div class="tr-count-row">
             <div class="tr-count-block">
-              <span class="tr-num tr-num-out" id="tr-num-output" style="color:#a78bfa">—</span>
+              <span class="tr-num tr-num-out" id="tr-num-output" style="color:#a78bfa">-</span>
               <span class="tr-unit">tokens</span>
             </div>
             <div class="tr-cost-block">
-              <div class="tr-cost-val" id="tr-cost-output">—</div>
+              <div class="tr-cost-val" id="tr-cost-output">-</div>
               <div class="tr-cost-lbl">Output Cost</div>
             </div>
           </div>
@@ -741,8 +741,8 @@
           <div class="tr-stats">
             <div class="tr-stat"><div class="tr-stat-lbl">Chars</div><div class="tr-stat-val" id="tr-chars">0</div></div>
             <div class="tr-stat"><div class="tr-stat-lbl">Words</div><div class="tr-stat-val" id="tr-words">0</div></div>
-            <div class="tr-stat"><div class="tr-stat-lbl">Chars/Tok</div><div class="tr-stat-val" id="tr-ratio">—</div></div>
-            <div class="tr-stat"><div class="tr-stat-lbl">Cheapest</div><div class="tr-stat-val" id="tr-cheapest" style="color:#10b981">—</div></div>
+            <div class="tr-stat"><div class="tr-stat-lbl">Chars/Tok</div><div class="tr-stat-val" id="tr-ratio">-</div></div>
+            <div class="tr-stat"><div class="tr-stat-lbl">Cheapest</div><div class="tr-stat-val" id="tr-cheapest" style="color:#10b981">-</div></div>
           </div>
 
           <div class="tr-energy-block" id="tr-energy-block">
@@ -754,14 +754,14 @@
             <div class="tr-energy-row">
               <div class="tr-energy-stat">
                 <div class="tr-energy-lbl">Energy Used</div>
-                <div class="tr-energy-val" id="tr-energy-wh" style="color:#f59e0b">—</div>
+                <div class="tr-energy-val" id="tr-energy-wh" style="color:#f59e0b">-</div>
               </div>
               <div class="tr-energy-stat">
                 <div class="tr-energy-lbl">CO₂ Emitted</div>
-                <div class="tr-energy-val" id="tr-energy-co2" style="color:#6ee7b7">—</div>
+                <div class="tr-energy-val" id="tr-energy-co2" style="color:#6ee7b7">-</div>
               </div>
             </div>
-            <div class="tr-energy-equiv" id="tr-energy-equiv">—</div>
+            <div class="tr-energy-equiv" id="tr-energy-equiv">-</div>
             <div class="tr-energy-bar-wrap">
               <div class="tr-energy-bar-track">
                 <div class="tr-energy-bar-fill" id="tr-energy-bar" style="width:0%;background:linear-gradient(90deg,#f59e0b,#ef4444)"></div>
@@ -776,7 +776,7 @@
         <div class="tr-mini-row">
           <span style="color:${platform.color};font-size:13px;font-weight:600" id="tr-mnum-in">0</span>
           <span style="color:#71717a;font-size:10px">in /</span>
-          <span style="color:#a78bfa;font-size:13px;font-weight:600" id="tr-mnum-out">—</span>
+          <span style="color:#a78bfa;font-size:13px;font-weight:600" id="tr-mnum-out">-</span>
           <span style="color:#71717a;font-size:10px">out</span>
           <span style="color:#a1a1aa;font-size:11px;margin-left:6px" id="tr-mcost-total">${isFree?"Free":"$0.00"}</span>
         </div>
@@ -785,7 +785,7 @@
       <div class="tr-foot">
         <div class="tr-foot-status">
           <span class="tr-foot-dot" id="tr-status-dot" style="background:${platform.color}"></span>
-          <span id="tr-status">Detected — start typing</span>
+          <span id="tr-status">Detected - start typing</span>
         </div>
         <span class="tr-session-info" id="tr-session-calls">0 calls</span>
       </div>
@@ -846,7 +846,8 @@
   // ═══════════════════════════════════════════════════
 
   function updateFromInput(text) {
-    if (!text||!text.trim()) { pulse("Detected — start typing", platform.color); return; }
+    const _meaningful = text.replace(/[\n\r\t\u200b\u00a0\uFEFF\s]/g, "");
+    if (!_meaningful) { pulse("Detected — start typing", platform.color); return; }
 
     const counts = countAll(text);
     const n = counts[platform.tok]||0;
@@ -875,7 +876,7 @@
       const gc=document.getElementById("tr-gc-"+gi.key);
       const be=document.getElementById("tr-gb-"+gi.key);
       if(ve) ve.textContent=v.toLocaleString();
-      if(gc) gc.textContent=v>0?"$"+c.toFixed(5):"—";
+      if(gc) gc.textContent=v>0?"$"+c.toFixed(5):"-";
       if(be) be.style.width=(v/mx*100)+"%";
     }
 
@@ -885,7 +886,7 @@
     const cpEl=document.getElementById("tr-cheapest");
     if(chEl) chEl.textContent=text.length.toLocaleString();
     if(wdEl) wdEl.textContent=text.trim().split(/\s+/).length.toLocaleString();
-    if(rtEl) rtEl.textContent=n>0?(text.length/n).toFixed(1):"—";
+    if(rtEl) rtEl.textContent=n>0?(text.length/n).toFixed(1):"-";
     if(cpEl&&n>0){
       const cheapest=GRID_INFO.reduce((b,gi)=>{ const c=calcInputCost(counts[gi.key]||0,gi.key); return c<b.c?{gi,c}:b; },{gi:null,c:Infinity});
       if(cheapest.gi){cpEl.textContent=cheapest.gi.label;cpEl.style.color=cheapest.gi.color;}
@@ -906,7 +907,7 @@
         :`${(eng.co2g/1000).toFixed(4)} kg`;
       if(eqEl) eqEl.textContent=fmtEquiv(eng.wh, eng.searches);
       if(barEl){
-        // Scale bar: 0–100 searches maps to 0–100%
+        // Scale bar: 0-100 searches maps to 0-100%
         const pct=Math.min(100, (eng.searches/100)*100);
         barEl.style.width=Math.max(2,pct)+"%";
       }
@@ -1023,22 +1024,22 @@
   function attach(el){
     if(activeInput===el) return;
     activeInput=el;
-    // Disconnect body observer once input found — no more full-page watching
+    // Disconnect body observer once input found - no more full-page watching
     if(bodyObs){ bodyObs.disconnect(); bodyObs=null; }
     const h=()=>{ clearTimeout(debTimer); debTimer=setTimeout(()=>updateFromInput(getText(el)),150); };
     el.addEventListener("input",h);
-    // Only use MutationObserver on contenteditable — watch the element itself, not subtree
+    // Only use MutationObserver on contenteditable - watch the element itself, not subtree
     if(el.getAttribute("contenteditable")){
       new MutationObserver(h).observe(el,{childList:true,characterData:true,characterDataOldValue:false,subtree:true});
     }
-    pulse("Input detected — ready", platform.color);
+    pulse("Input detected - ready", platform.color);
   }
 
   // Poll stops once input is found
   let pollTimer=null;
   function poll(){
     const el=findInput();
-    if(el){ attach(el); return; } // done — no more polling
+    if(el){ attach(el); return; } // done - no more polling
     pollTimer=setTimeout(poll,300);
   }
 
@@ -1049,7 +1050,7 @@
   });
   bodyObs.observe(document.body,{childList:true,subtree:true});
 
-  // SPA route change — lightweight interval, reattaches only on actual nav
+  // SPA route change - lightweight interval, reattaches only on actual nav
   let lastPath=window.location.pathname;
   setInterval(()=>{
     if(window.location.pathname===lastPath) return;
@@ -1064,7 +1065,7 @@
       const badge=overlayEl?.querySelector(".tr-platform-badge");
       if(badge) badge.textContent=platform.subLabel();
     }
-    pulse("Detected — start typing", platform.color);
+    pulse("Detected - start typing", platform.color);
     poll();
   },2000);
 
