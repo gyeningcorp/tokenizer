@@ -1028,7 +1028,7 @@
     el.addEventListener("input",h);
     // Only use MutationObserver on contenteditable — watch the element itself, not subtree
     if(el.getAttribute("contenteditable")){
-      new MutationObserver(h).observe(el,{childList:true,characterData:true,subtree:false});
+      new MutationObserver(h).observe(el,{childList:true,characterData:true,characterDataOldValue:false,subtree:true});
     }
     pulse("Input detected — ready", platform.color);
   }
