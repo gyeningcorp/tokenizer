@@ -1,0 +1,33 @@
+{
+  "name": "tokenizer-desktop",
+  "version": "1.0.0",
+  "description": "Tokenizer — Desktop app for token counting with local model support",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux"
+  },
+  "build": {
+    "appId": "com.tokenizer.desktop",
+    "productName": "Tokenizer",
+    "directories": { "output": "dist" },
+    "win": {
+      "target": "nsis",
+      "icon": "../icons/icon128.png"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "../icons/icon128.png"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  },
+  "devDependencies": {
+    "electron": "^29.0.0",
+    "electron-builder": "^24.0.0"
+  }
+}

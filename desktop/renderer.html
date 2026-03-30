@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tokenizer</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0d0d16; --bg2: #13131f; --bg3: #1c1c27; --bg4: #22223a;
+      --border: #2d2d3d; --text: #e2e8f0; --muted: #71717a; --dim: #9ca3af;
+      --accent: #a78bfa; --green: #10b981; --yellow: #f59e0b; --red: #ef4444;
+      --orange: #f97316;
+    }
+    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 13px; overflow: hidden; }
+
+    /* Layout */
+    .app { display: flex; flex-direction: column; height: 100vh; }
+    .titlebar { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 8px 16px; display: flex; align-items: center; gap: 10px; -webkit-app-region: drag; flex-shrink: 0; }
+    .logo-mark { width: 24px; height: 24px; background: linear-gradient(135deg, #a78bfa, #6d28d9); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; color: white; }
+    .logo-name { font-weight: 700; font-size: 15px; }
+    .logo-sub { font-size: 11px; color: var(--muted); margin-left: 4px; }
+    .tab-bar { display: flex; gap: 4px; margin-left: auto; -webkit-app-region: no-drag; }
+    .tab { padding: 4px 12px; border-radius: 5px; cursor: pointer; font-size: 11px; color: var(--muted); transition: all 0.15s; }
+    .tab:hover { background: var(--bg3); color: var(--text); }
+    .tab.active { background: var(--bg4); color: var(--accent); }
+
+    .main { display: flex; flex: 1; overflow: hidden; }
+
+    /* Left panel — input */
+    .panel-left { flex: 1; display: flex; flex-direction: column; border-right: 1px solid var(--border); }
+    .panel-label { padding: 8px 14px; font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid var(--border); background: var(--bg2); display: flex; align-items: center; justify-content: space-between; }
+    textarea#input {
+      flex: 1; background: var(--bg); color: var(--text); border: none; outline: none;
+      padding: 14px; font-size: 14px; line-height: 1.6; resize: none; font-family: inherit;
+    }
+    textarea#input::placeholder { color: var(--muted); }
+    .chips-area { border-top: 1px solid var(--border); padding: 10px 12px; max-height: 120px; overflow-y: auto; background: var(--bg2); }
+    .chips-label { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 4px; }
+    .chip { display: inline-flex; flex-direction: column; align-items: center; padding: 3px 5px; border-radius: 4px; font-size: 11px; cursor: default; border: 1px solid; }
+    .chip-word { font-weight: 500; }
+    .chip-meta { font-size: 8px; opacity: 0.7; }
+    .t1 { background: #10b98115; border-color: #10b98144; color: #6ee7b7; }
+    .t2 { background: #fbbf2415; border-color: #fbbf2444; color: #fde68a; }
+    .t3 { background: #f9731615; border-color: #f9731644; color: #fdba74; }
+    .t4 { background: #ef444415; border-color: #ef444444; color: #fca5a5; }
+    .tp { background: #3f3f5015; border-color: #3f3f5044; color: var(--muted); }
+    .chips-empty { color: var(--muted); font-size: 11px; padding: 4px 0; }
+
+    /* Right panel — stats */
+    .panel-right { width: 280px; display: flex; flex-direction: column; overflow-y: auto; flex-shrink: 0; }
+    .stat-section { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+    .stat-section-title { font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
+
+    /* Main counter */
+    .main-counter { display: flex; align-items: baseline; gap: 6px; }
+    .main-num { font-size: 32px; font-weight: 800; color: var(--accent); line-height: 1; }
+    .main-unit { color: var(--muted); font-size: 13px; }
+    .main-cost { font-size: 12px; color: var(--yellow); margin-top: 3px; }
+    .badge { display: inline-block; font-size: 9px; padding: 2px 6px; border-radius: 3px; margin-left: 6px; }
+    .badge-est { background: #fcd34d22; color: #fde68a; }
+
+    /* Grid */
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .grid-item { background: var(--bg3); border: 1px solid var(--border); border-radius: 5px; padding: 7px 8px; }
+    .grid-item.active { border-color: var(--accent); background: #a78bfa10; }
+    .grid-name { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+    .grid-val { font-size: 16px; font-weight: 700; margin: 2px 0; }
+    .grid-cost { font-size: 9px; color: var(--muted); }
+    .grid-bar { height: 2px; background: var(--bg4); border-radius: 1px; margin-top: 4px; }
+    .grid-bar-fill { height: 100%; border-radius: 1px; transition: width 0.3s; }
+
+    /* Context bar */
+    .ctx-row { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-bottom: 3px; }
+    .ctx-track { background: var(--bg4); border-radius: 3px; height: 6px; }
+    .ctx-fill { height: 100%; border-radius: 3px; transition: width 0.3s, background 0.3s; }
+    .ctx-remaining { font-size: 9px; color: var(--muted); text-align: center; margin-top: 3px; }
+
+    /* Stats row */
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+    .stat-box { background: var(--bg3); border-radius: 4px; padding: 5px 6px; text-align: center; }
+    .stat-lbl { font-size: 8px; color: var(--muted); text-transform: uppercase; }
+    .stat-val { font-size: 13px; font-weight: 600; margin-top: 1px; }
+
+    /* Local model panel */
+    .local-panel { padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+    .local-panel.hidden { display: none; }
+    .field-label { font-size: 10px; color: var(--muted); margin-bottom: 3px; }
+    input[type=text], select {
+      width: 100%; background: var(--bg3); border: 1px solid var(--border); color: var(--text);
+      padding: 6px 8px; border-radius: 5px; font-size: 12px; outline: none; font-family: inherit;
+    }
+    input[type=text]:focus, select:focus { border-color: var(--accent); }
+    .btn { padding: 7px 14px; border-radius: 5px; border: none; cursor: pointer; font-size: 12px; font-family: inherit; font-weight: 600; transition: all 0.15s; }
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-primary:hover { background: #8b5cf6; }
+    .btn-sm { padding: 5px 10px; font-size: 11px; }
+    .conn-status { font-size: 11px; padding: 6px 8px; border-radius: 4px; }
+    .conn-ok { background: #10b98115; color: #6ee7b7; border: 1px solid #10b98130; }
+    .conn-fail { background: #ef444415; color: #fca5a5; border: 1px solid #ef444430; }
+    .local-tok-row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+    .local-tok-num { font-size: 20px; font-weight: 700; color: var(--green); }
+
+    /* Presets */
+    .presets { display: flex; flex-wrap: wrap; gap: 4px; }
+    .preset-btn { padding: 3px 8px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg3); color: var(--dim); font-size: 10px; cursor: pointer; }
+    .preset-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* Energy */
+    .energy-row { display: flex; gap: 8px; }
+    .energy-stat { flex: 1; text-align: center; background: var(--bg3); border-radius: 4px; padding: 6px; }
+    .energy-val { font-size: 13px; font-weight: 600; color: var(--yellow); }
+    .energy-lbl { font-size: 8px; color: var(--muted); text-transform: uppercase; margin-top: 2px; }
+    .energy-equiv { font-size: 10px; color: var(--muted); text-align: center; margin-top: 4px; }
+
+    /* Footer */
+    .footer { padding: 5px 14px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; font-size: 10px; color: var(--muted); background: var(--bg2); flex-shrink: 0; }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); display: inline-block; margin-right: 5px; }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Title bar -->
+  <div class="titlebar">
+    <div class="logo-mark">T</div>
+    <span class="logo-name">Tokenizer</span>
+    <span class="logo-sub">Desktop</span>
+    <div class="tab-bar">
+      <div class="tab active" data-tab="counter" onclick="switchTab('counter')">Counter</div>
+      <div class="tab" data-tab="local" onclick="switchTab('local')">Local Models</div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+
+    <!-- Left: input + chips -->
+    <div class="panel-left">
+      <div class="panel-label">
+        <span>INPUT TEXT</span>
+        <span id="char-count" style="color:var(--muted)">0 chars</span>
+      </div>
+      <textarea id="input" placeholder="Paste or type your prompt here…" spellcheck="false"></textarea>
+      <div class="chips-area">
+        <div class="chips-label">Token Breakdown</div>
+        <div class="chips" id="chips">
+          <div class="chips-empty">Start typing to see token breakdown…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: stats -->
+    <div class="panel-right">
+
+      <!-- Counter tab -->
+      <div id="tab-counter">
+
+        <!-- Main count -->
+        <div class="stat-section">
+          <div class="stat-section-title">Token Count <span class="badge badge-est">±3-5% est.</span></div>
+          <div class="main-counter">
+            <span class="main-num" id="main-num">0</span>
+            <span class="main-unit">tokens</span>
+          </div>
+          <div class="main-cost" id="main-cost">$0.000000</div>
+        </div>
+
+        <!-- Context window -->
+        <div class="stat-section">
+          <div class="stat-section-title">Context Window</div>
+          <div class="ctx-row">
+            <span id="ctx-used">0</span>
+            <span id="ctx-pct">0%</span>
+            <span id="ctx-max">128k</span>
+          </div>
+          <div class="ctx-track"><div class="ctx-fill" id="ctx-fill" style="width:0%;background:var(--green)"></div></div>
+          <div class="ctx-remaining" id="ctx-remaining">128k remaining</div>
+        </div>
+
+        <!-- Model selector -->
+        <div class="stat-section">
+          <div class="stat-section-title">Active Model</div>
+          <select id="model-select" onchange="onModelChange()">
+            <option value="o200k_base">GPT-4o (o200k)</option>
+            <option value="claude">Claude 3.5 Sonnet</option>
+            <option value="gemini">Gemini 1.5 Pro</option>
+            <option value="llama3">LLaMA 3 70B</option>
+            <option value="deepseek">DeepSeek V3</option>
+            <option value="mistral">Mistral Large</option>
+            <option value="cl100k_base">GPT-4 (cl100k)</option>
+          </select>
+        </div>
+
+        <!-- By model grid -->
+        <div class="stat-section">
+          <div class="stat-section-title">By Model</div>
+          <div class="grid" id="model-grid"></div>
+        </div>
+
+        <!-- Stats row -->
+        <div class="stat-section">
+          <div class="stats-row">
+            <div class="stat-box"><div class="stat-lbl">Chars</div><div class="stat-val" id="s-chars">0</div></div>
+            <div class="stat-box"><div class="stat-lbl">Words</div><div class="stat-val" id="s-words">0</div></div>
+            <div class="stat-box"><div class="stat-lbl">C/Tok</div><div class="stat-val" id="s-ratio">—</div></div>
+            <div class="stat-box"><div class="stat-lbl">Cheapest</div><div class="stat-val" id="s-cheapest" style="font-size:10px">—</div></div>
+          </div>
+        </div>
+
+        <!-- Energy -->
+        <div class="stat-section">
+          <div class="stat-section-title">⚡ Data Center Power</div>
+          <div class="energy-row">
+            <div class="energy-stat"><div class="energy-val" id="e-wh">—</div><div class="energy-lbl">Energy</div></div>
+            <div class="energy-stat"><div class="energy-val" id="e-co2" style="color:var(--green)">—</div><div class="energy-lbl">CO₂</div></div>
+          </div>
+          <div class="energy-equiv" id="e-equiv">—</div>
+        </div>
+
+      </div><!-- /tab-counter -->
+
+      <!-- Local models tab -->
+      <div id="tab-local" style="display:none">
+        <div class="stat-section">
+          <div class="stat-section-title">Local Model Endpoint</div>
+          <div class="field-label">Presets</div>
+          <div class="presets">
+            <div class="preset-btn" onclick="applyPreset('http://localhost:11434','ollama')">Ollama</div>
+            <div class="preset-btn" onclick="applyPreset('http://localhost:1234','local')">LM Studio</div>
+            <div class="preset-btn" onclick="applyPreset('http://localhost:3001','local')">AnythingLLM</div>
+            <div class="preset-btn" onclick="applyPreset('http://localhost:1337','local')">Jan</div>
+            <div class="preset-btn" onclick="applyPreset('http://localhost:8080','local')">LocalAI</div>
+          </div>
+        </div>
+        <div class="local-panel">
+          <div>
+            <div class="field-label">Endpoint URL</div>
+            <input type="text" id="local-url" value="http://localhost:11434" placeholder="http://localhost:11434" />
+          </div>
+          <div>
+            <div class="field-label">Model Name</div>
+            <input type="text" id="local-model" value="llama3" placeholder="e.g. llama3, mistral, phi3" />
+          </div>
+          <div id="model-list-wrap" style="display:none">
+            <div class="field-label">Available Models</div>
+            <select id="model-list" onchange="document.getElementById('local-model').value = this.value" style="font-size:11px"></select>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="testConnection()">Test Connection</button>
+          <div id="conn-status" style="display:none"></div>
+
+          <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px">
+            <div class="stat-section-title">Live Token Count</div>
+            <div style="font-size:10px;color:var(--muted);margin-bottom:6px">Uses Ollama /api/generate to get exact token count for your input.</div>
+            <div class="local-tok-row">
+              <span class="local-tok-num" id="local-tok-num">—</span>
+              <span style="color:var(--muted)">exact tokens</span>
+              <span id="local-tok-badge" style="font-size:9px;color:var(--muted)"></span>
+            </div>
+            <button class="btn btn-primary btn-sm" style="margin-top:8px;width:100%" onclick="countLocal()">Count with Local Model</button>
+          </div>
+
+          <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px">
+            <div class="stat-section-title" style="margin-bottom:6px">About Local Support</div>
+            <div style="font-size:10px;color:var(--muted);line-height:1.5">
+              Supports any OpenAI-compatible local server.<br>
+              <strong style="color:var(--dim)">Ollama</strong> — exact counts via /api/generate<br>
+              <strong style="color:var(--dim)">LM Studio</strong> — estimated counts<br>
+              <strong style="color:var(--dim)">AnythingLLM / Jan / LocalAI</strong> — estimated counts<br>
+              All local models show <strong style="color:var(--green)">$0.00 cost</strong>.
+            </div>
+          </div>
+        </div>
+      </div><!-- /tab-local -->
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span><span class="status-dot" id="status-dot"></span><span id="status-text">Ready — paste or type to begin</span></span>
+    <span id="footer-right">Tokenizer v1.0</span>
+  </div>
+
+</div>
+<script src="renderer.js"></script>
+</body>
+</html>
