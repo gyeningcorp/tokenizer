@@ -608,8 +608,9 @@
       const cls = /^[.,!?;:'"()\[\]{}\-]+$/.test(item.word) ? "tr-chip-punct" : getChipClass(item.toks);
       const costStr = isFree ? "free" : `$${item.cost.toFixed(7)}`;
       const syllStr = item.sylls > 0 ? `${item.sylls}syl·${item.toks}tok` : `${item.toks}tok`;
+      const safe = item.word.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
       return `<div class="tr-chip ${cls}" title="${item.toks} token${item.toks!==1?'s':''} · ${item.sylls} syllable${item.sylls!==1?'s':''} · ${costStr}">
-        <span class="tr-chip-word">${item.word.replace(/</g,"&lt;").replace(/>/g,"&gt;")}</span>
+        <span class="tr-chip-word">${safe}</span>
         <span class="tr-chip-meta">${syllStr}</span>
       </div>`;
     }).join("") + (data.items.length > 120 ? `<div class="tr-chips-empty">+${data.items.length-120} more words…</div>` : "");
