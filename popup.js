@@ -156,6 +156,30 @@ document.getElementById("btn-reset").addEventListener("click", () => {
   });
 })();
 
+// Cost optimization tips — rotate every 10s
+(function initTips() {
+  const tips = [
+    "💡 Switch to Gemini Flash and save ~80% on simple tasks",
+    "💡 Claude Haiku costs 20x less than Opus for short replies",
+    "💡 GPT-4o Mini handles 90% of tasks at 1/16th the cost",
+    "💡 DeepSeek R1 matches GPT-4 quality at a fraction of the price",
+    "💡 Batch API calls save up to 50% on OpenAI and Anthropic",
+    "💡 Use Gemini 2.0 Flash for coding — same quality, lower cost",
+  ];
+  const el = document.getElementById("cost-tip");
+  if (!el) return;
+  let i = 0;
+  el.textContent = tips[i];
+  setInterval(() => {
+    el.style.opacity = "0";
+    setTimeout(() => {
+      i = (i + 1) % tips.length;
+      el.textContent = tips[i];
+      el.style.opacity = "1";
+    }, 400);
+  }, 10000);
+})();
+
 // Export CSV
 document.getElementById("btn-export").addEventListener("click", () => {
   chrome.runtime.sendMessage({ type: "get_session" }, (res) => {

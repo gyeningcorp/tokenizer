@@ -105,6 +105,26 @@ body {
 .cloud-status { font-size: 7px; color: rgba(16,185,129,0.6); margin-top: 2px; display: none; }
 .cloud-status.show { display: block; }
 
+/* Cost tip */
+.cost-tip {
+  font-size: 8px; color: rgba(236,187,97,0.5); text-align: center;
+  margin-bottom: 10px; min-height: 12px;
+  transition: opacity 0.4s; opacity: 1;
+}
+
+/* Team row inside cloud card */
+.team-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.04); }
+.team-icon { font-size: 12px; flex-shrink: 0; }
+.team-text { flex: 1; }
+.team-label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.35); display: flex; align-items: center; gap: 5px; }
+.team-sub { font-size: 8px; color: rgba(255,255,255,0.18); margin-top: 1px; }
+.pro-chip { font-size: 7px; padding: 1px 5px; border-radius: 3px; background: rgba(99,102,241,0.2); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.2); }
+
+/* Consultation CTA */
+.consult-cta { text-align: center; margin-bottom: 8px; padding: 7px; border-radius: 8px; background: rgba(236,187,97,0.04); border: 1px solid rgba(236,187,97,0.1); }
+.consult-cta a { font-size: 9px; font-weight: 600; color: #ecbb61; text-decoration: none; letter-spacing: 0.02em; }
+.consult-cta a:hover { color: #f5d080; }
+
 /* AI Value Card */
 .value-card {
   padding: 11px 13px; border-radius: 10px;
@@ -150,6 +170,7 @@ body {
     <span class="total-lbl">Session Total</span>
     <span class="total-val" id="s-total">$0.0000</span>
   </div>
+  <div id="cost-tip" class="cost-tip"></div>
 
   <div class="section-title">Supported Platforms (30+)</div>
 
@@ -252,13 +273,24 @@ body {
       </label>
     </div>
     <div class="cloud-upgrade show" id="cloud-upgrade">
-      <a href="https://tokenizer.dev/pricing" target="_blank">Upgrade to Pro — $8/mo</a> to enable cloud sync
+      <a href="https://tokenizer.dev/pricing" target="_blank">Upgrade to Pro - $8/mo</a> to enable cloud sync
+    </div>
+    <div class="team-row">
+      <span class="team-icon">👥</span>
+      <div class="team-text">
+        <div class="team-label">Team Analytics <span class="pro-chip">PRO</span></div>
+        <div class="team-sub">Track AI spend across your whole team</div>
+      </div>
     </div>
   </div>
 
   <div class="btn-row">
     <button class="btn btn-danger" id="btn-reset">Reset Session</button>
     <button class="btn" id="btn-export">Export CSV</button>
+  </div>
+
+  <div class="consult-cta">
+    <a href="https://tokenizer.dev/consult" target="_blank">⚡ Need AI built for your business? →</a>
   </div>
 
   <div class="foot">
