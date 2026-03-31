@@ -9,7 +9,7 @@
   if (window.__TokenizerInjected) return;
   window.__TokenizerInjected = true;
 
-  const ORIGIN = "Tokenizer-interceptor";
+  const ORIGIN = "tokenizer-interceptor";
 
   // ─── Streaming SSE parser ────────────────────────────────────────────────
   function parseSSEChunks(text) {
