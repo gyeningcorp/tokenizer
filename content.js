@@ -697,8 +697,12 @@
             <span class="tr-total-val" style="font-size:12px;color:#9ca3af" id="tr-cost-total">${isFree?"Free":"$0.000000"}</span>
           </div>
           <div class="tr-total-row" style="margin-top:4px;padding-top:4px;border-top:1px solid #2d2d3d">
-            <span class="tr-total-lbl" style="font-size:9px;color:#f59e0b">CONVERSATION TOTAL</span>
+            <span class="tr-total-lbl" style="font-size:9px;color:#f59e0b">SESSION TOTAL <span onclick="(function(){if(window.__tokenizerResetSession)window.__tokenizerResetSession();})()" style="cursor:pointer;color:#6b7280;font-size:8px;margin-left:4px;text-decoration:underline">[reset]</span></span>
             <span class="tr-total-val" id="tr-cost-cumulative" style="color:#f59e0b">${isFree?"Free":"$0.000000"}</span>
+          </div>
+          <div class="tr-total-row" style="margin-top:2px">
+            <span class="tr-total-lbl" style="font-size:9px;color:#6b7280">Tokens used this session</span>
+            <span style="font-size:11px;color:#9ca3af" id="tr-tok-cumulative">0</span>
           </div>
 
           <div style="margin-top:10px;padding:8px;background:#1c1c27;border-radius:6px;border:1px solid #2d2d3d">
@@ -817,6 +821,32 @@
   let overlayEl=null, isMinimized=false, isHidden=false, prevTok=0, sessionCalls=0;
   let cumulativeTokens=0, cumulativeCost=0;
 
+  // ── Persist session across page reloads ──────────────
+  const SESSION_KEY = "tokenizer_session_" + location.hostname + "_" + new Date().toDateString();
+  function loadPersistedSession() {
+    try {
+      chrome.storage.local.get(SESSION_KEY, (data) => {
+        const s = data[SESSION_KEY];
+        if (s) {
+          cumulativeTokens = s.tokens || 0;
+          cumulativeCost   = s.cost  || 0;
+          sessionCalls     = s.calls || 0;
+          updateContextBar(cumulativeTokens);
+        }
+      });
+    } catch(_) {}
+  }
+  function persistSession() {
+    try {
+      chrome.storage.local.set({ [SESSION_KEY]: { tokens: cumulativeTokens, cost: cumulativeCost, calls: sessionCalls } });
+    } catch(_) {}
+  }
+  function resetSession() {
+    cumulativeTokens = 0; cumulativeCost = 0; sessionCalls = 0;
+    persistSession();
+    updateContextBar(0);
+  }
+
   function initOverlay() {
     if (isHidden || overlayEl) return;
     overlayEl = buildOverlay();
@@ -832,6 +862,10 @@
     overlayEl.querySelector("#tr-btn-close").addEventListener("click", ()=>{
       isHidden=true; overlayEl.style.display="none";
     });
+    // Load persisted session data
+    loadPersistedSession();
+    // Expose reset function to overlay button
+    window.__tokenizerResetSession = resetSession;
   }
 
   function pulse(text, color) {
@@ -952,6 +986,8 @@
     if (costEl) costEl.textContent = platform.costPer1k===0 ? "Free" : "$"+cumulativeCost.toFixed(6);
     const cumEl = document.getElementById("tr-cost-cumulative");
     if (cumEl) cumEl.textContent = platform.costPer1k===0 ? "Free" : "$"+cumulativeCost.toFixed(6);
+    const cumTokEl = document.getElementById("tr-tok-cumulative");
+    if (cumTokEl) cumTokEl.textContent = cumulativeTokens >= 1000 ? (cumulativeTokens/1000).toFixed(1)+"k" : cumulativeTokens;
   }
 
   // ═══════════════════════════════════════════════════
@@ -999,6 +1035,7 @@
 
     const scEl=document.getElementById("tr-session-calls");
     if(scEl) scEl.textContent=`${sessionCalls} call${sessionCalls!==1?"s":""}`;
+    persistSession();
     pulse("Response captured ✓","#10b981");
     setTimeout(()=>pulse(`Monitoring · ${sessionCalls} call${sessionCalls!==1?"s":""}`,platform.color),3000);
   }
