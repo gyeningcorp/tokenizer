@@ -11,6 +11,7 @@ function fmtCost(n) {
 }
 
 function render(session) {
+  if (!session) return;
   document.getElementById("s-in-tok").textContent   = fmt(session.inputTokens);
   document.getElementById("s-out-tok").textContent  = fmt(session.outputTokens);
   document.getElementById("s-in-cost").textContent  = fmtCost(session.inputCost);
