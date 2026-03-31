@@ -4,6 +4,9 @@
  * Manages session state and relays messages between content + popup.
  */
 
+// ── Cross-browser API shim ────────────────────────────
+const api = (typeof browser !== "undefined") ? browser : chrome;
+
 const DEFAULT_SESSION = {
   inputTokens: 0,
   outputTokens: 0,
@@ -20,14 +23,14 @@ function getTodayKey() {
 }
 
 function accumulateDailyCost(cost) {
-  chrome.storage.local.get("tokenizer_daily", (data) => {
+  api.storage.local.get("tokenizer_daily", (data) => {
     const daily = data.tokenizer_daily || {};
     const today = getTodayKey();
     daily[today] = (daily[today] || 0) + cost;
     // Keep last 90 days
     const keys = Object.keys(daily).sort();
     if (keys.length > 90) delete daily[keys[0]];
-    chrome.storage.local.set({ tokenizer_daily: daily });
+    api.storage.local.set({ tokenizer_daily: daily });
   });
 }
 
@@ -65,12 +68,12 @@ function sendToBridge(data) {
 connectBridge();
 
 // Persist session across service worker restarts (MV3 goes idle frequently)
-chrome.storage.local.get("tokenizer_session", (data) => {
+api.storage.local.get("tokenizer_session", (data) => {
   if (data.tokenizer_session) session = data.tokenizer_session;
 });
 
 function saveSession() {
-  chrome.storage.local.set({ tokenizer_session: { ...session } });
+  api.storage.local.set({ tokenizer_session: { ...session } });
 }
 
 // Pricing table (per 1M tokens, USD) — updated March 2026
@@ -111,7 +114,7 @@ function getPricing(model) {
 }
 
 // Listen for messages from content scripts
-chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+api.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "api_tokens") {
     const p = getPricing(msg.model || "");
     session.inputTokens += msg.inputTokens || 0;
@@ -125,7 +128,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     saveSession();
 
     // Broadcast to popup if open
-    chrome.runtime.sendMessage({
+    api.runtime.sendMessage({
       type: "session_update",
       session: { ...session },
     }).catch(() => {});
@@ -157,7 +160,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 
   if (msg.type === "get_daily") {
-    chrome.storage.local.get("tokenizer_daily", (data) => {
+    api.storage.local.get("tokenizer_daily", (data) => {
       sendResponse({ daily: data.tokenizer_daily || {} });
     });
     return true;
@@ -165,3 +168,18 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   return true; // keep channel open for async
 });
+
+// ── Keep-Alive (MV3 service worker stays awake for WebSocket) ────
+// Chrome MV3 service workers terminate after ~30s of inactivity.
+// This alarm fires every 25s to keep the SW alive and bridge connected.
+if (typeof api.alarms !== "undefined") {
+  api.alarms.create("tokenizer-keepalive", { periodInMinutes: 0.4 }); // ~24s
+  api.alarms.onAlarm.addListener((alarm) => {
+    if (alarm.name === "tokenizer-keepalive") {
+      // Ping bridge if it's disconnected
+      if (!bridgeWs || bridgeWs.readyState !== WebSocket.OPEN) {
+        connectBridge();
+      }
+    }
+  });
+}
