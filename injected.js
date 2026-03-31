@@ -82,7 +82,20 @@
       url.includes("aistudio.google.com") ||
       url.includes("/api/generate") ||
       url.includes("/models/") ||
-      url.includes("/backend/") && url.includes("stream")
+      (url.includes("/backend/") && url.includes("stream")) ||
+      // Claude.ai native endpoints
+      url.includes("/completion") ||
+      url.includes("/chat_conversations") ||
+      // Gemini / Google AI Studio
+      url.includes("generativelanguage.googleapis.com") ||
+      // DeepSeek
+      url.includes("chat.deepseek.com") ||
+      // Perplexity
+      url.includes("perplexity.ai/api") ||
+      // Grok
+      url.includes("grok.x.ai") ||
+      // Copilot / Bing
+      url.includes("copilot.microsoft.com")
     );
   }
 
