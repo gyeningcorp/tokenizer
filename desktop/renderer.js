@@ -107,7 +107,8 @@ function fmtCo2(g){
   return(g/1000).toFixed(4)+" kg";
 }
 function fmtEquiv(wh,s){
-  if(s<1)return"< 1 Google search";
+  if(s<0.01)return"< 1/100 Google search";
+  if(s<1){const frac=Math.round(1/s);return`1/${frac} of a Google search`;}
   if(s<10)return`≈ ${s.toFixed(1)} Google searches`;
   const sec=(wh/10)*3600;
   if(sec<60)return`LED bulb for ${sec.toFixed(0)}s`;
