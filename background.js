@@ -169,6 +169,21 @@ api.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   return true; // keep channel open for async
 });
 
+// ── Service Worker Keep-Alive (Chrome MV3) ────────────
+// Chrome kills the SW after ~30s of inactivity which drops the WebSocket bridge.
+// Alarm fires every 25s to keep it alive.
+if (api.alarms) {
+  api.alarms.create("tokenizer-keepalive", { periodInMinutes: 0.4 }); // ~25s
+  api.alarms.onAlarm.addListener((alarm) => {
+    if (alarm.name === "tokenizer-keepalive") {
+      // Reconnect bridge if disconnected
+      if (!bridgeWs || bridgeWs.readyState !== WebSocket.OPEN) {
+        connectBridge();
+      }
+    }
+  });
+}
+
 // ── Keep-Alive (MV3 service worker stays awake for WebSocket) ────
 // Chrome MV3 service workers terminate after ~30s of inactivity.
 // This alarm fires every 25s to keep the SW alive and bridge connected.
