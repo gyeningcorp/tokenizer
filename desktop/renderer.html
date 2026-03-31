@@ -288,6 +288,24 @@
           <div class="ctx-remaining" id="ctx-remaining">128k remaining</div>
         </div>
 
+        <!-- Live Bridge (from Chrome extension) -->
+        <div class="stat-section" id="live-panel" style="border:1px solid #ef444466;border-radius:8px;padding:10px">
+          <div class="stat-section-title" style="color:#ef4444">
+            <span id="live-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#555;margin-right:6px;vertical-align:middle"></span>
+            🔴 Live Session (from Extension)
+          </div>
+          <div class="stats-row" style="margin-top:6px">
+            <div class="stat-box"><div class="stat-lbl">Input</div><div class="stat-val" id="live-input">0</div></div>
+            <div class="stat-box"><div class="stat-lbl">Output</div><div class="stat-val" id="live-output">0</div></div>
+            <div class="stat-box"><div class="stat-lbl">Cost</div><div class="stat-val" id="live-cost" style="font-size:10px">$0.00</div></div>
+            <div class="stat-box"><div class="stat-lbl">Calls</div><div class="stat-val" id="live-calls">0</div></div>
+          </div>
+          <div class="energy-row" style="margin-top:6px">
+            <div class="energy-stat"><div class="energy-val" id="live-wh" style="font-size:11px">—</div><div class="energy-lbl">Energy</div></div>
+            <div class="energy-stat"><div class="energy-val" id="live-co2" style="font-size:11px;color:var(--green)">—</div><div class="energy-lbl">CO₂</div></div>
+          </div>
+        </div>
+
         <!-- Model selector -->
         <div class="stat-section">
           <div class="stat-section-title">Active Model</div>

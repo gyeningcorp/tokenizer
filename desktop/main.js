@@ -2,8 +2,10 @@ const { app, BrowserWindow, ipcMain, shell } = require("electron");
 const path = require("path");
 const https = require("https");
 const http = require("http");
+const { WebSocketServer } = require("ws");
 
 let mainWindow;
+let wss;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -27,10 +29,44 @@ function createWindow() {
 
 app.whenReady().then(() => {
   createWindow();
+  startBridgeServer();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
+
+// ── Extension Bridge (WebSocket server on localhost:9877) ──────────
+function startBridgeServer() {
+  try {
+    wss = new WebSocketServer({ port: 9877, host: "127.0.0.1" });
+    wss.on("connection", (ws) => {
+      console.log("[Bridge] Extension connected");
+      ws.on("message", (raw) => {
+        try {
+          const msg = JSON.parse(raw);
+          if (msg.type === "api_tokens" && mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send("bridge-tokens", {
+              inputTokens: msg.inputTokens || 0,
+              outputTokens: msg.outputTokens || 0,
+              model: msg.model || "",
+              platform: msg.platform || "",
+              url: msg.url || "",
+            });
+          }
+        } catch (_) {}
+      });
+      ws.on("close", () => console.log("[Bridge] Extension disconnected"));
+    });
+    wss.on("error", (e) => {
+      if (e.code === "EADDRINUSE") {
+        console.log("[Bridge] Port 9877 in use — bridge disabled");
+      }
+    });
+    console.log("[Bridge] WebSocket server listening on ws://127.0.0.1:9877");
+  } catch (e) {
+    console.log("[Bridge] Failed to start:", e.message);
+  }
+}
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();

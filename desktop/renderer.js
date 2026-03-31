@@ -497,6 +497,47 @@ document.getElementById("input").addEventListener("input",(e)=>{
   debTimer=setTimeout(()=>updateSingle(e.target.value),120);
 });
 
+// ── EXTENSION BRIDGE (live data from Chrome extension) ────────────
+
+let bridgeSession = { inputTokens: 0, outputTokens: 0, cost: 0, calls: 0 };
+
+if (window.tokenizerAPI && window.tokenizerAPI.onBridgeTokens) {
+  window.tokenizerAPI.onBridgeTokens((data) => {
+    bridgeSession.inputTokens += data.inputTokens || 0;
+    bridgeSession.outputTokens += data.outputTokens || 0;
+    bridgeSession.calls += 1;
+
+    const inCost = (data.inputTokens / 1_000_000) * (PRICING_INPUT[currentModel] || 1);
+    const outCost = (data.outputTokens / 1_000_000) * (PRICING_OUTPUT[currentModel] || 3);
+    bridgeSession.cost += inCost + outCost;
+
+    // Update live panel
+    const liveIn = document.getElementById("live-input");
+    const liveOut = document.getElementById("live-output");
+    const liveCost = document.getElementById("live-cost");
+    const liveCalls = document.getElementById("live-calls");
+    const liveDot = document.getElementById("live-dot");
+
+    if (liveIn) liveIn.textContent = bridgeSession.inputTokens.toLocaleString();
+    if (liveOut) liveOut.textContent = bridgeSession.outputTokens.toLocaleString();
+    if (liveCost) liveCost.textContent = "$" + bridgeSession.cost.toFixed(6);
+    if (liveCalls) liveCalls.textContent = bridgeSession.calls + " call" + (bridgeSession.calls !== 1 ? "s" : "");
+    if (liveDot) { liveDot.style.background = "#10b981"; setTimeout(() => liveDot.style.background = "#6ee7b7", 1000); }
+
+    // Update energy for total bridge tokens
+    const totalBridgeTok = bridgeSession.inputTokens + bridgeSession.outputTokens;
+    if (totalBridgeTok > 0) {
+      const eng = calcEnergy(totalBridgeTok, currentModel);
+      const liveWh = document.getElementById("live-wh");
+      const liveCo2 = document.getElementById("live-co2");
+      if (liveWh) liveWh.textContent = fmtWh(eng.wh);
+      if (liveCo2) liveCo2.textContent = fmtCo2(eng.co2g);
+    }
+
+    setStatus(`🔴 LIVE · ${bridgeSession.calls} API call${bridgeSession.calls!==1?"s":""} · ${(bridgeSession.inputTokens+bridgeSession.outputTokens).toLocaleString()} tokens`, "#ef4444");
+  });
+}
+
 // ── INIT ──────────────────────────────────────────────
 
 buildGrid();

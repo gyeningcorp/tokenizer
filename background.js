@@ -33,6 +33,37 @@ function accumulateDailyCost(cost) {
 
 let session = { ...DEFAULT_SESSION };
 
+// ── Desktop Bridge (WebSocket to Tokenizer desktop app) ──────────
+let bridgeWs = null;
+let bridgeReconnectTimer = null;
+
+function connectBridge() {
+  try {
+    bridgeWs = new WebSocket("ws://127.0.0.1:9877");
+    bridgeWs.onopen = () => console.log("[Tokenizer Bridge] Connected to desktop app");
+    bridgeWs.onclose = () => {
+      bridgeWs = null;
+      // Reconnect every 10 seconds
+      if (!bridgeReconnectTimer) {
+        bridgeReconnectTimer = setInterval(() => {
+          if (!bridgeWs) connectBridge();
+          else clearInterval(bridgeReconnectTimer), bridgeReconnectTimer = null;
+        }, 10000);
+      }
+    };
+    bridgeWs.onerror = () => { bridgeWs = null; };
+  } catch (_) {}
+}
+
+function sendToBridge(data) {
+  if (bridgeWs && bridgeWs.readyState === WebSocket.OPEN) {
+    bridgeWs.send(JSON.stringify(data));
+  }
+}
+
+// Connect on startup
+connectBridge();
+
 // Persist session across service worker restarts (MV3 goes idle frequently)
 chrome.storage.local.get("tokenizer_session", (data) => {
   if (data.tokenizer_session) session = data.tokenizer_session;
@@ -98,6 +129,15 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       type: "session_update",
       session: { ...session },
     }).catch(() => {});
+
+    // Relay to desktop app via bridge
+    sendToBridge({
+      type: "api_tokens",
+      inputTokens: msg.inputTokens || 0,
+      outputTokens: msg.outputTokens || 0,
+      model: msg.model || "",
+      platform: "",
+    });
 
     sendResponse({ ok: true });
   }
