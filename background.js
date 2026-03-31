@@ -146,7 +146,12 @@ api.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 
   if (msg.type === "get_session") {
-    sendResponse({ session: { ...session } });
+    // Always read from storage to avoid race condition on service worker restart
+    api.storage.local.get("tokenizer_session", (data) => {
+      if (data.tokenizer_session) session = data.tokenizer_session;
+      sendResponse({ session: { ...session } });
+    });
+    return true; // keep message channel open for async response
   }
 
   if (msg.type === "reset_session") {
