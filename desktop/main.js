@@ -38,9 +38,18 @@ app.whenReady().then(() => {
 // ── Extension Bridge (WebSocket server on localhost:9877) ──────────
 function startBridgeServer() {
   try {
+    const ALLOWED_EXT_ID = process.env.TOKENIZER_EXT_ID || null;
     wss = new WebSocketServer({ port: 9877, host: "127.0.0.1" });
-    wss.on("connection", (ws) => {
-      console.log("[Bridge] Extension connected");
+    wss.on("connection", (ws, req) => {
+      // Validate extension identity from query parameter
+      const url = new URL(req.url, "http://127.0.0.1:9877");
+      const extId = url.searchParams.get("extId");
+      if (!extId || (ALLOWED_EXT_ID && extId !== ALLOWED_EXT_ID)) {
+        console.log("[Bridge] Rejected connection — invalid or missing extId");
+        ws.close(4001, "Unauthorized");
+        return;
+      }
+      console.log("[Bridge] Extension connected (id: " + extId + ")");
       ws.on("message", (raw) => {
         try {
           const msg = JSON.parse(raw);

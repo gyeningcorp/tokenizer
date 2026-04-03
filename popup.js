@@ -26,7 +26,9 @@ chrome.runtime.sendMessage({ type: "get_session" }, (res) => {
 });
 
 // Live updates while popup is open
-chrome.runtime.onMessage.addListener((msg) => {
+chrome.runtime.onMessage.addListener((msg, sender) => {
+  // Only accept messages from our own extension
+  if (sender.id !== chrome.runtime.id) return;
   if (msg.type === "session_update" && msg.session) render(msg.session);
 });
 

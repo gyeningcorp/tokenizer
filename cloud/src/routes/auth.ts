@@ -1,8 +1,18 @@
 import { Hono } from "hono";
+import * as jose from "jose";
 import { sql } from "../db/index";
 import { requireAuth, signToken, type AuthUser } from "../middleware/auth";
 
 export const authRoutes = new Hono();
+
+const GOOGLE_JWKS = jose.createRemoteJWKSet(
+  new URL("https://www.googleapis.com/oauth2/v3/certs")
+);
+
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+if (!GOOGLE_CLIENT_ID) {
+  throw new Error("GOOGLE_CLIENT_ID environment variable is required");
+}
 
 /**
  * POST /api/auth/google
@@ -15,19 +25,16 @@ authRoutes.post("/google", async (c) => {
     return c.json({ error: "id_token required" }, 400);
   }
 
-  // TODO: Verify Google id_token with Google's public keys
-  // For MVP, decode without verification (dev only)
-  // In production, use jose.jwtVerify with Google JWKS
-  const parts = id_token.split(".");
-  if (parts.length !== 3) {
-    return c.json({ error: "Invalid token format" }, 400);
-  }
-
-  let payload: { email?: string; name?: string; sub?: string };
+  // Verify Google id_token signature and claims using Google's public JWKS
+  let payload: jose.JWTPayload & { email?: string; name?: string };
   try {
-    payload = JSON.parse(atob(parts[1]));
-  } catch {
-    return c.json({ error: "Invalid token payload" }, 400);
+    const result = await jose.jwtVerify(id_token, GOOGLE_JWKS, {
+      issuer: ["https://accounts.google.com", "accounts.google.com"],
+      audience: GOOGLE_CLIENT_ID,
+    });
+    payload = result.payload as typeof payload;
+  } catch (err) {
+    return c.json({ error: "Invalid or expired Google token" }, 401);
   }
 
   if (!payload.email) {

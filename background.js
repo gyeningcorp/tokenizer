@@ -42,7 +42,8 @@ let bridgeReconnectTimer = null;
 
 function connectBridge() {
   try {
-    bridgeWs = new WebSocket("ws://127.0.0.1:9877");
+    // Pass extension ID as auth token so desktop app can verify the connection origin
+    bridgeWs = new WebSocket("ws://127.0.0.1:9877?extId=" + encodeURIComponent(api.runtime.id));
     bridgeWs.onopen = () => console.log("[Tokenizer Bridge] Connected to desktop app");
     bridgeWs.onclose = () => {
       bridgeWs = null;
@@ -115,6 +116,12 @@ function getPricing(model) {
 
 // Listen for messages from content scripts
 api.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  // Reject messages from unknown senders — only trust our own extension
+  if (sender.id !== api.runtime.id) {
+    sendResponse({ error: "Unauthorized sender" });
+    return;
+  }
+
   if (msg.type === "api_tokens") {
     const p = getPricing(msg.model || "");
     session.inputTokens += msg.inputTokens || 0;

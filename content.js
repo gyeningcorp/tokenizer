@@ -597,23 +597,43 @@
     const el = document.getElementById("tr-chips");
     if (!el) return;
     if (!text || !text.replace(/[\n\r\t\u200b\u00a0\uFEFF\s]/g,"")) {
-      el.innerHTML = '<div class="tr-chips-empty">Start typing to see token breakdown…</div>';
+      el.textContent = '';
+      const emptyDiv = document.createElement('div');
+      emptyDiv.className = 'tr-chips-empty';
+      emptyDiv.textContent = 'Start typing to see token breakdown…';
+      el.appendChild(emptyDiv);
       return;
     }
     const data = buildBreakdown(text);
     if (!data || !data.items.length) return;
     const isFree = platform.costPer1k === 0;
 
-    el.innerHTML = data.items.slice(0, 120).map(item => {
+    el.textContent = '';
+    const frag = document.createDocumentFragment();
+    data.items.slice(0, 120).forEach(item => {
       const cls = /^[.,!?;:'"()\[\]{}\-]+$/.test(item.word) ? "tr-chip-punct" : getChipClass(item.toks);
       const costStr = isFree ? "free" : `$${item.cost.toFixed(7)}`;
       const syllStr = item.sylls > 0 ? `${item.sylls}syl·${item.toks}tok` : `${item.toks}tok`;
-      const safe = item.word.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
-      return `<div class="tr-chip ${cls}" title="${item.toks} token${item.toks!==1?'s':''} · ${item.sylls} syllable${item.sylls!==1?'s':''} · ${costStr}">
-        <span class="tr-chip-word">${safe}</span>
-        <span class="tr-chip-meta">${syllStr}</span>
-      </div>`;
-    }).join("") + (data.items.length > 120 ? `<div class="tr-chips-empty">+${data.items.length-120} more words…</div>` : "");
+      const chip = document.createElement('div');
+      chip.className = `tr-chip ${cls}`;
+      chip.title = `${item.toks} token${item.toks!==1?'s':''} · ${item.sylls} syllable${item.sylls!==1?'s':''} · ${costStr}`;
+      const wordSpan = document.createElement('span');
+      wordSpan.className = 'tr-chip-word';
+      wordSpan.textContent = item.word;
+      const metaSpan = document.createElement('span');
+      metaSpan.className = 'tr-chip-meta';
+      metaSpan.textContent = syllStr;
+      chip.appendChild(wordSpan);
+      chip.appendChild(metaSpan);
+      frag.appendChild(chip);
+    });
+    if (data.items.length > 120) {
+      const moreDiv = document.createElement('div');
+      moreDiv.className = 'tr-chips-empty';
+      moreDiv.textContent = `+${data.items.length-120} more words…`;
+      frag.appendChild(moreDiv);
+    }
+    el.appendChild(frag);
   }
 
   function fmtEquiv(wh, searches) {
