@@ -12,11 +12,12 @@ function fmtCost(n) {
 
 function render(session) {
   if (!session) return;
-  document.getElementById("s-in-tok").textContent   = fmt(session.inputTokens);
-  document.getElementById("s-out-tok").textContent  = fmt(session.outputTokens);
-  document.getElementById("s-in-cost").textContent  = fmtCost(session.inputCost);
-  document.getElementById("s-out-cost").textContent = fmtCost(session.outputCost);
-  document.getElementById("s-total").textContent    = "$" + ((session.inputCost || 0) + (session.outputCost || 0)).toFixed(4);
+  const el = (id) => document.getElementById(id);
+  if (el("s-in-tok"))   el("s-in-tok").textContent   = fmt(session.inputTokens);
+  if (el("s-out-tok"))  el("s-out-tok").textContent  = fmt(session.outputTokens);
+  if (el("s-in-cost"))  el("s-in-cost").textContent  = fmtCost(session.inputCost);
+  if (el("s-out-cost")) el("s-out-cost").textContent = fmtCost(session.outputCost);
+  if (el("s-total"))    el("s-total").textContent    = "$" + ((session.inputCost || 0) + (session.outputCost || 0)).toFixed(4);
 }
 
 // Initial load
