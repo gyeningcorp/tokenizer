@@ -1,5 +1,5 @@
 /**
- * Tokenizer - content.js v0.4.0
+ * Tokenizer - content.js v0.4.1
  * Live token counting on 30+ LLM platforms.
  * Auto-detects platform on page load, shows overlay immediately.
  */
@@ -44,7 +44,7 @@
       label: "Gemini", color: "#8b5cf6", tok: "gemini", model: "gemini-1.5-pro",
       costPer1k: 0.00035, exact: true,
       subLabel: () => "Gemini",
-      selectors: ['div[contenteditable="true"]','.ql-editor','rich-textarea','textarea'],
+      selectors: ['rich-textarea','div[contenteditable="true"]','.ql-editor','textarea'],
     },
 
     perplexity: {
@@ -1072,7 +1072,14 @@
   function findInput(){
     for (const sel of platform.selectors){
       const el=document.querySelector(sel);
-      if(el&&(el.offsetWidth>0||el.offsetHeight>0)) return el;
+      if(!el) continue;
+      // Pierce shadow DOM for web components like Gemini's rich-textarea
+      if(el.shadowRoot){
+        const inner=el.shadowRoot.querySelector('div[contenteditable="true"],.ql-editor,textarea');
+        if(inner) return inner;
+        continue;
+      }
+      if(el.offsetWidth>0||el.offsetHeight>0) return el;
     }
     return null;
   }
@@ -1133,7 +1140,7 @@
   function boot(){
     initOverlay();
     poll();
-    console.log(`[Tokenizer v0.4.0] Active on ${platform.id} (${platform.label})`);
+    console.log(`[Tokenizer v0.4.1] Active on ${platform.id} (${platform.label})`);
   }
 
   if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",boot);
