@@ -38,6 +38,11 @@
           inputTokens = Math.max(inputTokens, obj.usage.input_tokens || 0);
           outputTokens = Math.max(outputTokens, obj.usage.output_tokens || 0);
         }
+        // Gemini / Google AI Studio streaming
+        if (obj.usageMetadata) {
+          inputTokens = Math.max(inputTokens, obj.usageMetadata.promptTokenCount || 0);
+          outputTokens = Math.max(outputTokens, obj.usageMetadata.candidatesTokenCount || 0);
+        }
       } catch (_) {}
     }
     return { inputTokens, outputTokens };
@@ -54,6 +59,20 @@
     // Anthropic format
     if (obj.input_tokens) inputTokens = obj.input_tokens;
     if (obj.output_tokens) outputTokens = obj.output_tokens;
+    // Gemini / Google AI Studio
+    if (obj.usageMetadata) {
+      inputTokens = obj.usageMetadata.promptTokenCount || inputTokens;
+      outputTokens = obj.usageMetadata.candidatesTokenCount || outputTokens;
+    }
+    // Gemini array response (generateContent returns array of candidates + usageMetadata at root)
+    if (Array.isArray(obj)) {
+      for (const item of obj) {
+        if (item && item.usageMetadata) {
+          inputTokens = Math.max(inputTokens, item.usageMetadata.promptTokenCount || 0);
+          outputTokens = Math.max(outputTokens, item.usageMetadata.candidatesTokenCount || 0);
+        }
+      }
+    }
     // HuggingFace Inference API
     if (Array.isArray(obj) && obj[0] && obj[0].generated_text) {
       // No token count in HF API response by default — estimate handled in content.js

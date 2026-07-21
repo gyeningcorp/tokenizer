@@ -717,7 +717,7 @@
             <span class="tr-total-val" style="font-size:12px;color:#9ca3af" id="tr-cost-total">${isFree?"Free":"$0.000000"}</span>
           </div>
           <div class="tr-total-row" style="margin-top:4px;padding-top:4px;border-top:1px solid #2d2d3d">
-            <span class="tr-total-lbl" style="font-size:9px;color:#f59e0b">SESSION TOTAL <span onclick="(function(){if(window.__tokenizerResetSession)window.__tokenizerResetSession();})()" style="cursor:pointer;color:#6b7280;font-size:8px;margin-left:4px;text-decoration:underline">[reset]</span></span>
+            <span class="tr-total-lbl" style="font-size:9px;color:#f59e0b">SESSION TOTAL <span onclick="(function(){if(window.__tokenizerResetSession)window.__tokenizerResetSession();})()" style="cursor:pointer;color:#6b7280;font-size:8px;margin-left:4px;text-decoration:underline">[reset]</span><span onclick="(function(){if(window.__tokenizerShowReport)window.__tokenizerShowReport();})()" style="cursor:pointer;color:#f59e0b;font-size:8px;margin-left:4px;text-decoration:underline">[report]</span></span>
             <span class="tr-total-val" id="tr-cost-cumulative" style="color:#f59e0b">${isFree?"Free":"$0.000000"}</span>
           </div>
           <div class="tr-total-row" style="margin-top:2px">
@@ -840,6 +840,7 @@
 
   let overlayEl=null, isMinimized=false, isHidden=false, prevTok=0, sessionCalls=0;
   let cumulativeTokens=0, cumulativeCost=0;
+  let sessionInputTokens=0, sessionOutputTokens=0, sessionStart=Date.now();
 
   // ── Persist session across page reloads ──────────────
   const SESSION_KEY = "tokenizer_session_" + location.hostname + "_" + new Date().toDateString();
@@ -863,8 +864,55 @@
   }
   function resetSession() {
     cumulativeTokens = 0; cumulativeCost = 0; sessionCalls = 0;
+    sessionInputTokens = 0; sessionOutputTokens = 0; sessionStart = Date.now();
     persistSession();
     updateContextBar(0);
+  }
+
+  function showSessionReport() {
+    const existing = document.getElementById('tr-session-report-modal');
+    if (existing) { existing.remove(); return; }
+    const eng = calcEnergy(cumulativeTokens, platform.tok);
+    const elapsed = Math.round((Date.now() - sessionStart) / 1000);
+    const durStr = elapsed < 60 ? `${elapsed}s` : elapsed < 3600 ? `${Math.round(elapsed/60)}m` : `${(elapsed/3600).toFixed(1)}h`;
+    const isFree = platform.costPer1k === 0;
+    const fmtTok = n => n >= 1000 ? (n/1000).toFixed(1)+'k' : String(n);
+    const modal = document.createElement('div');
+    modal.id = 'tr-session-report-modal';
+    modal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:2147483647;background:#1a1a2e;border:1px solid #3d3d5c;border-radius:12px;padding:20px;min-width:290px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;color:#e5e7eb;box-shadow:0 20px 60px rgba(0,0,0,0.85)';
+    const co2Str = eng.co2g < 0.001 ? `${(eng.co2g*1000000).toFixed(1)}μg` : eng.co2g < 1 ? `${(eng.co2g*1000).toFixed(2)}mg` : `${eng.co2g.toFixed(3)}g`;
+    modal.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div style="font-size:14px;font-weight:700;color:#f59e0b">📊 Session Report</div>
+        <button id="tr-report-close" style="background:none;border:none;color:#6b7280;cursor:pointer;font-size:18px;line-height:1">×</button>
+      </div>
+      <div style="font-size:10px;color:#6b7280;margin-bottom:12px">${platform.label} · ${durStr} · ${sessionCalls} call${sessionCalls!==1?'s':''}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+        <div style="background:#0f0f1a;padding:10px;border-radius:8px">
+          <div style="font-size:8px;color:#6b7280;text-transform:uppercase;margin-bottom:3px">Tokens In</div>
+          <div style="font-size:20px;font-weight:700;color:${platform.color}">${fmtTok(sessionInputTokens)}</div>
+        </div>
+        <div style="background:#0f0f1a;padding:10px;border-radius:8px">
+          <div style="font-size:8px;color:#6b7280;text-transform:uppercase;margin-bottom:3px">Tokens Out</div>
+          <div style="font-size:20px;font-weight:700;color:#a78bfa">${sessionOutputTokens > 0 ? fmtTok(sessionOutputTokens) : '—'}</div>
+        </div>
+        <div style="background:#0f0f1a;padding:10px;border-radius:8px">
+          <div style="font-size:8px;color:#6b7280;text-transform:uppercase;margin-bottom:3px">API Cost</div>
+          <div style="font-size:20px;font-weight:700;color:#f59e0b">${isFree ? 'Free' : '$'+cumulativeCost.toFixed(4)}</div>
+        </div>
+        <div style="background:#0f0f1a;padding:10px;border-radius:8px">
+          <div style="font-size:8px;color:#6b7280;text-transform:uppercase;margin-bottom:3px">Energy</div>
+          <div style="font-size:20px;font-weight:700;color:#6ee7b7">${fmtEnergy(eng.wh)}</div>
+        </div>
+      </div>
+      <div style="background:#0f0f1a;padding:10px;border-radius:8px;font-size:11px;color:#9ca3af">
+        <div style="display:flex;justify-content:space-between;margin-bottom:3px"><span>CO₂ emitted</span><span style="color:#6ee7b7">${co2Str}</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:3px"><span>Equiv. to</span><span>${fmtEquiv(eng.wh, eng.searches)}</span></div>
+        <div style="display:flex;justify-content:space-between"><span>Total tokens</span><span>${fmtTok(cumulativeTokens)}</span></div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.querySelector('#tr-report-close').addEventListener('click', () => modal.remove());
   }
 
   function initOverlay() {
@@ -884,8 +932,13 @@
     });
     // Load persisted session data
     loadPersistedSession();
-    // Expose reset function to overlay button
+    // Expose functions to overlay buttons
     window.__tokenizerResetSession = resetSession;
+    window.__tokenizerShowReport = showSessionReport;
+    // Save session when tab is hidden / user navigates away
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') persistSession();
+    });
   }
 
   function pulse(text, color) {
@@ -1043,6 +1096,8 @@
     // Accumulate for context window + session cost
     const inTok = inputTokens || 0;
     const outTok = outputTokens || 0;
+    sessionInputTokens += inTok;
+    sessionOutputTokens += outTok;
     cumulativeTokens += inTok + outTok;
     const inC3 = (inTok/1_000_000)*(PRICING_INPUT[platform.tok]||1);
     const outC3 = (outTok/1_000_000)*(PRICING_OUTPUT[platform.tok]||3);
@@ -1069,13 +1124,27 @@
     if(el.tagName==="TEXTAREA"||el.tagName==="INPUT") return el.value;
     return el.innerText||el.textContent||"";
   }
+  const SHADOW_SELS = ['div[contenteditable="true"]','[contenteditable="true"]','.ql-editor','textarea','p[contenteditable]'];
+  function deepShadowQuery(root, depth) {
+    if (depth > 4) return null;
+    for (const s of SHADOW_SELS) {
+      const el = root.querySelector(s);
+      if (el && (el.offsetWidth > 0 || el.offsetHeight > 0 || depth > 0)) return el;
+    }
+    for (const el of root.querySelectorAll('*')) {
+      if (el.shadowRoot) {
+        const found = deepShadowQuery(el.shadowRoot, depth + 1);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
   function findInput(){
     for (const sel of platform.selectors){
       const el=document.querySelector(sel);
       if(!el) continue;
-      // Pierce shadow DOM for web components like Gemini's rich-textarea
       if(el.shadowRoot){
-        const inner=el.shadowRoot.querySelector('div[contenteditable="true"],.ql-editor,textarea');
+        const inner = deepShadowQuery(el.shadowRoot, 0);
         if(inner) return inner;
         continue;
       }
