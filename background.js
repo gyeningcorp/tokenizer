@@ -147,25 +147,28 @@ api.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     session.calls += 1;
     accumulateDailyCost(addedCost);
 
-    // Save completed call to history, then reset for next call
-    const completedSession = { ...session, endedAt: Date.now() };
+    saveSession();
+
+    // Save snapshot of this call to history (non-destructive — session keeps accumulating)
+    const callSnapshot = {
+      inputTokens: inTok, outputTokens: outTok,
+      inputCost: (inTok / 1_000_000) * p.input,
+      outputCost: (outTok / 1_000_000) * p.output,
+      electricityKwh: addedKwh, co2Grams: addedCo2,
+      model: msg.model || "", at: Date.now(),
+    };
     api.storage.local.get("tokenizer_history", (data) => {
       const history = data.tokenizer_history || [];
-      history.push(completedSession);
-      // Keep last 500 sessions
+      history.push(callSnapshot);
       if (history.length > 500) history.splice(0, history.length - 500);
       api.storage.local.set({ tokenizer_history: history });
     });
 
-    // Broadcast to popup before reset so popup sees the completed call
+    // Broadcast to popup
     api.runtime.sendMessage({
       type: "session_update",
       session: { ...session },
     }).catch(() => {});
-
-    // Auto-reset session after each call
-    session = { ...DEFAULT_SESSION, startedAt: Date.now() };
-    saveSession();
 
     // Relay to desktop app via bridge
     sendToBridge({

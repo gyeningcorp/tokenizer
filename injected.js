@@ -73,6 +73,20 @@
         }
       }
     }
+    // Gemini web app nested array format (BardChatUi internal RPC)
+    // Response text is deeply nested in arrays: extract all strings, estimate tokens
+    if (Array.isArray(obj) && inputTokens === 0 && outputTokens === 0) {
+      let extracted = "";
+      function dig(v, depth) {
+        if (depth > 8) return;
+        if (typeof v === "string" && v.length > 10) extracted += v + " ";
+        else if (Array.isArray(v)) v.forEach(x => dig(x, depth + 1));
+      }
+      dig(obj, 0);
+      if (extracted.length > 20) {
+        outputTokens = Math.round(extracted.length / 4);
+      }
+    }
     // HuggingFace Inference API
     if (Array.isArray(obj) && obj[0] && obj[0].generated_text) {
       // No token count in HF API response by default — estimate handled in content.js
@@ -105,7 +119,8 @@
       // Claude.ai native endpoints
       url.includes("/completion") ||
       url.includes("/chat_conversations") ||
-      // Gemini / Google AI Studio
+      // Gemini web app + AI Studio + Gemini API
+      url.includes("gemini.google.com") ||
       url.includes("generativelanguage.googleapis.com") ||
       // DeepSeek
       url.includes("chat.deepseek.com") ||
@@ -154,6 +169,19 @@
           if ((inputTokens > 0 || outputTokens > 0) &&
               (inputTokens !== lastIn || outputTokens !== lastOut)) {
             emit({ type: "api_tokens", inputTokens, outputTokens, url });
+          } else if (lastIn === 0 && lastOut === 0 && buffer.length > 50) {
+            // Gemini web / non-SSE streaming fallback: estimate from body text length
+            const cleanBuf = buffer.replace(/\)\]}'[\r\n]+/, "");
+            try {
+              const parsed = JSON.parse(cleanBuf);
+              const { inputTokens: i2, outputTokens: o2 } = parseJSON(parsed);
+              if (i2 > 0 || o2 > 0) emit({ type: "api_tokens", inputTokens: i2, outputTokens: o2, url });
+              else if (o2 === 0 && cleanBuf.length > 100) {
+                emit({ type: "api_tokens", inputTokens: 0, outputTokens: Math.round(cleanBuf.length / 4), url });
+              }
+            } catch (_) {
+              if (buffer.length > 100) emit({ type: "api_tokens", inputTokens: 0, outputTokens: Math.round(buffer.length / 16), url });
+            }
           }
         } catch (_) {}
       })();
