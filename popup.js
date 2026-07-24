@@ -220,12 +220,11 @@ document.getElementById("btn-export").addEventListener("click", () => {
       `API Calls,${s.calls}`,
       `Session Start,${new Date(s.startedAt).toISOString()}`,
     ].join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `Tokenizer-session-${Date.now()}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    // Use chrome.downloads for reliable popup-safe download
+    chrome.downloads.download({
+      url: 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv),
+      filename: `Tokenizer-session-${Date.now()}.csv`,
+      saveAs: false,
+    });
   });
 });

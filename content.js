@@ -1206,9 +1206,62 @@
   // BOOT
   // ═══════════════════════════════════════════════════
 
+  // ═══════════════════════════════════════════════════
+  // DOM-BASED RESPONSE OBSERVER (Gemini fallback)
+  // Fires when API interception doesn't return output tokens.
+  // Reads rendered response text and estimates tokens after streaming stops.
+  // ═══════════════════════════════════════════════════
+  let domLastResponseText = "", domResponseTimer = null, domLastApiCapture = 0;
+
+  function domObserverBoot() {
+    if (platform.id !== "gemini") return;
+    const RESPONSE_SELS = [
+      ".model-response-text",
+      "[data-response-index]",
+      "model-response",
+      ".response-container .markdown",
+      "[class*='response'] [class*='markdown']",
+      "[class*='model'] [class*='content']",
+    ];
+
+    function getLatestResponseText() {
+      for (const sel of RESPONSE_SELS) {
+        const els = document.querySelectorAll(sel);
+        if (els.length > 0) {
+          const last = els[els.length - 1];
+          const t = last.innerText || last.textContent || "";
+          if (t.trim().length > 20) return t.trim();
+        }
+      }
+      return "";
+    }
+
+    new MutationObserver(() => {
+      clearTimeout(domResponseTimer);
+      domResponseTimer = setTimeout(() => {
+        // Skip if API interception already captured tokens recently
+        if (Date.now() - domLastApiCapture < 5000) return;
+        const text = getLatestResponseText();
+        if (!text || text === domLastResponseText || text.length < 20) return;
+        domLastResponseText = text;
+        const outputTokens = Math.round(text.length / 4);
+        chrome.runtime.sendMessage({ type: "api_tokens", inputTokens: 0, outputTokens, model: platform.model }).catch(() => {});
+        updateFromAPI(0, outputTokens);
+      }, 2500);
+    }).observe(document.body, { childList: true, subtree: true });
+  }
+
+  // Mark when API interception captures tokens (so DOM observer skips)
+  window.addEventListener("message", (e) => {
+    if (e.data && e.data.__source === "tokenizer-interceptor" && e.data.type === "api_tokens") {
+      if ((e.data.outputTokens || 0) > 0) domLastApiCapture = Date.now();
+    }
+  });
+
   function boot(){
     initOverlay();
     poll();
+    domObserverBoot();
     console.log(`[Tokenizer v0.4.1] Active on ${platform.id} (${platform.label})`);
   }
 

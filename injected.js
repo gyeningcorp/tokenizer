@@ -186,9 +186,24 @@
         } catch (_) {}
       })();
     } else {
-      // Non-streaming: parse JSON
-      clone.json().then(obj => {
-        const { inputTokens, outputTokens } = parseJSON(obj);
+      // Non-streaming: read as text, try JSON, then Gemini )]}\' fallback
+      clone.text().then(text => {
+        let inputTokens = 0, outputTokens = 0;
+        try {
+          const obj = JSON.parse(text);
+          ({ inputTokens, outputTokens } = parseJSON(obj));
+        } catch (_) {
+          // Gemini web uses )]}\' prefixed chunked JSON — strip prefix and retry
+          const cleaned = text.replace(/^\)\]}'[\r\n]+/, "");
+          try {
+            const obj = JSON.parse(cleaned);
+            ({ inputTokens, outputTokens } = parseJSON(obj));
+          } catch (_2) {}
+          // Still nothing: estimate from body size (Gemini JSON wrapper ≈ 8-12x text content)
+          if (inputTokens === 0 && outputTokens === 0 && text.length > 200) {
+            outputTokens = Math.round(text.length / 10);
+          }
+        }
         if (inputTokens > 0 || outputTokens > 0) {
           emit({ type: "api_tokens", inputTokens, outputTokens, url });
         }
