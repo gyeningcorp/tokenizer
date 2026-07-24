@@ -10,6 +10,14 @@ function fmtCost(n) {
   return "$" + (n || 0).toFixed(4);
 }
 
+function fmtKwh(kwh) {
+  const mwh = (kwh || 0) * 1000;
+  return mwh < 1 ? (mwh * 1000).toFixed(2) + " µWh" : mwh.toFixed(3) + " mWh";
+}
+function fmtCo2(g) {
+  return g < 1 ? ((g || 0) * 1000).toFixed(2) + " mg" : (g || 0).toFixed(3) + " g";
+}
+
 function render(session) {
   if (!session) return;
   const el = (id) => document.getElementById(id);
@@ -18,7 +26,18 @@ function render(session) {
   if (el("s-in-cost"))  el("s-in-cost").textContent  = fmtCost(session.inputCost);
   if (el("s-out-cost")) el("s-out-cost").textContent = fmtCost(session.outputCost);
   if (el("s-total"))    el("s-total").textContent    = "$" + ((session.inputCost || 0) + (session.outputCost || 0)).toFixed(4);
+  if (el("s-kwh"))      el("s-kwh").textContent      = fmtKwh(session.electricityKwh);
+  if (el("s-co2"))      el("s-co2").textContent      = fmtCo2(session.co2Grams);
 }
+
+function loadHistoryCount() {
+  chrome.runtime.sendMessage({ type: "get_history" }, (res) => {
+    const count = res?.history?.length || 0;
+    const el = document.getElementById("s-history-count");
+    if (el && count > 0) el.textContent = count + " calls logged";
+  });
+}
+loadHistoryCount();
 
 // Initial load
 chrome.runtime.sendMessage({ type: "get_session" }, (res) => {
@@ -196,6 +215,8 @@ document.getElementById("btn-export").addEventListener("click", () => {
       `Input Cost,$${(s.inputCost||0).toFixed(6)}`,
       `Output Cost,$${(s.outputCost||0).toFixed(6)}`,
       `Total Cost,$${((s.inputCost||0)+(s.outputCost||0)).toFixed(6)}`,
+      `Electricity (kWh),${(s.electricityKwh||0).toFixed(8)}`,
+      `CO2 (grams),${(s.co2Grams||0).toFixed(6)}`,
       `API Calls,${s.calls}`,
       `Session Start,${new Date(s.startedAt).toISOString()}`,
     ].join("\n");

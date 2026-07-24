@@ -12,9 +12,16 @@ const DEFAULT_SESSION = {
   outputTokens: 0,
   inputCost: 0,
   outputCost: 0,
+  electricityKwh: 0,
+  co2Grams: 0,
   calls: 0,
   startedAt: Date.now(),
 };
+
+// 0.001 Wh per token (IEA-calibrated estimate for cloud LLM inference)
+const ENERGY_KWH_PER_TOKEN = 0.000001;
+// US average grid: 386g CO2 per kWh
+const CO2_GRAMS_PER_KWH = 386;
 
 // Daily cost accumulator for monthly projection
 // Structure: { "2026-03-29": 0.0042, ... }
@@ -124,27 +131,47 @@ api.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   if (msg.type === "api_tokens") {
     const p = getPricing(msg.model || "");
-    session.inputTokens += msg.inputTokens || 0;
-    session.outputTokens += msg.outputTokens || 0;
-    const addedCost = ((msg.inputTokens || 0) / 1_000_000) * p.input
-                    + ((msg.outputTokens || 0) / 1_000_000) * p.output;
-    session.inputCost += ((msg.inputTokens || 0) / 1_000_000) * p.input;
-    session.outputCost += ((msg.outputTokens || 0) / 1_000_000) * p.output;
+    const inTok = msg.inputTokens || 0;
+    const outTok = msg.outputTokens || 0;
+    const totalTok = inTok + outTok;
+    const addedCost = (inTok / 1_000_000) * p.input + (outTok / 1_000_000) * p.output;
+    const addedKwh = totalTok * ENERGY_KWH_PER_TOKEN;
+    const addedCo2 = addedKwh * CO2_GRAMS_PER_KWH;
+
+    session.inputTokens += inTok;
+    session.outputTokens += outTok;
+    session.inputCost += (inTok / 1_000_000) * p.input;
+    session.outputCost += (outTok / 1_000_000) * p.output;
+    session.electricityKwh += addedKwh;
+    session.co2Grams += addedCo2;
     session.calls += 1;
     accumulateDailyCost(addedCost);
-    saveSession();
 
-    // Broadcast to popup if open
+    // Save completed call to history, then reset for next call
+    const completedSession = { ...session, endedAt: Date.now() };
+    api.storage.local.get("tokenizer_history", (data) => {
+      const history = data.tokenizer_history || [];
+      history.push(completedSession);
+      // Keep last 500 sessions
+      if (history.length > 500) history.splice(0, history.length - 500);
+      api.storage.local.set({ tokenizer_history: history });
+    });
+
+    // Broadcast to popup before reset so popup sees the completed call
     api.runtime.sendMessage({
       type: "session_update",
       session: { ...session },
     }).catch(() => {});
 
+    // Auto-reset session after each call
+    session = { ...DEFAULT_SESSION, startedAt: Date.now() };
+    saveSession();
+
     // Relay to desktop app via bridge
     sendToBridge({
       type: "api_tokens",
-      inputTokens: msg.inputTokens || 0,
-      outputTokens: msg.outputTokens || 0,
+      inputTokens: inTok,
+      outputTokens: outTok,
       model: msg.model || "",
       platform: "",
     });
@@ -169,6 +196,13 @@ api.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   if (msg.type === "get_pricing") {
     sendResponse({ pricing: PRICING, found: getPricing(msg.model) });
+  }
+
+  if (msg.type === "get_history") {
+    api.storage.local.get("tokenizer_history", (data) => {
+      sendResponse({ history: data.tokenizer_history || [] });
+    });
+    return true;
   }
 
   if (msg.type === "get_daily") {
